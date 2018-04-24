@@ -1,6 +1,9 @@
 Detects the language of each stdin line.
-Then tokenizes it with the preferred tokernizer and outputs space-separated tokens to stdout.
+
+Then tokenizes it with the preferred tokenizer and outputs space-separated tokens to stdout.
 
 Example usage:
+
 `echo 'Norsk er et vanskelig språk.' | ./158_tokenizer.sh > tokenized.txt`
+
 `./158_tokenizer.sh < text.txt > tokenized.txt`
