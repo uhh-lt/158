@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # coding: utf-8
 
+import os
 import socket
 from _thread import *
 import datetime
@@ -15,10 +16,28 @@ def tokenize(sentence):
     identifier = \
         subprocess.Popen(['language_identification/fasttext', 'predict', 'language_identification/lid.176.ftz', '-'],
                          stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    language = identifier.communicate(sentence.strip())[0].strip()
+    language = identifier.communicate(sentence)[0].strip()
     language = language.decode('utf-8').split('__')[-1]
     results['lang'] = language
+    if language == 'zh':
+        tokens = tokenize_chinese(sentence)
+    else:
+        tokenizer = \
+            subprocess.Popen(['Europarl/tokenizer.perl', '-l', language], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        tokens = tokenizer.communicate(sentence)[0].strip().decode('utf-8')
+    results['tokens'] = tokens.split()
     return results
+
+
+def tokenize_chinese(text):
+    doc = open('temp.txt', 'w')
+    doc.write(text.decode('utf-8'))
+    doc.close()
+    tokenizer = \
+        subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', 'temp.txt', 'UTF-8', '0'], stdout=subprocess.PIPE)
+    tokens = tokenizer.communicate()[0].decode('utf-8')
+    os.remove('temp.txt')
+    return tokens
 
 
 def clientthread(connect, addres):
@@ -30,11 +49,11 @@ def clientthread(connect, addres):
         data = connect.recv(2048)
         if not data:
             break
-        query = data
+        query = data.strip()
         output = tokenize(query)
         now = datetime.datetime.now()
-        print(now.strftime("%Y-%m-%d %H:%M"), '\t', addres[0] + ':' + str(addres[1]), '\t', data.decode('utf-8'),
-              file=sys.stderr)
+        print(now.strftime("%Y-%m-%d %H:%M"), '\t', addres[0] + ':' + str(addres[1]), '\t',
+              data.decode('utf-8').strip(), file=sys.stderr)
         # print(output, file=sys.stderr)
         reply = json.dumps(output, ensure_ascii=False).encode('utf-8')
         connect.sendall(reply)
