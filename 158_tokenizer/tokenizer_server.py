@@ -46,17 +46,18 @@ def clientthread(connect, addres):
     # infinite loop so that function do not terminate and thread do not end.
     while True:
         # Receiving from client
-        data = connect.recv(2048)
+        data = connect.recv(4096)
         if not data:
             break
-        query = data.strip()
-        output = tokenize(query)
-        now = datetime.datetime.now()
-        print(now.strftime("%Y-%m-%d %H:%M"), '\t', addres[0] + ':' + str(addres[1]), '\t',
+        queries = data.decode('utf-8').strip().split('\n')
+        for query in queries:
+            output = tokenize(query.encode('utf-8').strip())
+            now = datetime.datetime.now()
+            print(now.strftime("%Y-%m-%d %H:%M"), '\t', addres[0] + ':' + str(addres[1]), '\t',
               data.decode('utf-8').strip(), file=sys.stderr)
-        # print(output, file=sys.stderr)
-        reply = json.dumps(output, ensure_ascii=False).encode('utf-8')
-        connect.sendall(reply)
+            # print(output, file=sys.stderr)
+            reply = json.dumps(output, ensure_ascii=False).encode('utf-8')
+            connect.sendall(reply)
         break
 
     # came out of loop
