@@ -3,7 +3,7 @@
 
 import os
 import socket
-from _thread import *
+import threading
 import datetime
 import sys
 import json
@@ -40,7 +40,17 @@ def tokenize_chinese(text):
     return tokens
 
 
-def clientthread(connect, addres):
+class TokThread(threading.Thread):
+    def __init__(self, connect, address):
+        threading.Thread.__init__(self)
+        self.connect = connect
+        self.address = address
+
+    def run(self):
+        clientthread(self.connect, self.address)
+
+
+def clientthread(connect, address):
     # Function for handling connections. This will be used to create threads
 
     # infinite loop so that function do not terminate and thread do not end.
@@ -53,8 +63,8 @@ def clientthread(connect, addres):
         for query in queries:
             output = tokenize(query.encode('utf-8').strip())
             now = datetime.datetime.now()
-            print(now.strftime("%Y-%m-%d %H:%M"), '\t', addres[0] + ':' + str(addres[1]), '\t',
-              data.decode('utf-8').strip(), file=sys.stderr)
+            print(now.strftime("%Y-%m-%d %H:%M"), '\t', address[0] + ':' + str(address[1]), '\t',
+                  data.decode('utf-8').strip(), file=sys.stderr)
             # print(output, file=sys.stderr)
             reply = json.dumps(output, ensure_ascii=False).encode('utf-8')
             connect.sendall(reply)
@@ -79,7 +89,7 @@ print('Socket created', file=sys.stderr)
 try:
     s.bind((HOST, PORT))
 except socket.error as msg:
-    print('Bind failed. Error Code : ' + msg, file=sys.stderr)
+    print('Bind failed. Error Code : ' + str(msg), file=sys.stderr)
     sys.exit()
 
 print('Socket bind complete', file=sys.stderr)
@@ -90,8 +100,9 @@ print('Socket now listening on port', PORT, file=sys.stderr)
 
 # now keep talking with the client
 while 1:
-    # wait to accept a connection - blocking call
+    # wait to accept a connection
     conn, addr = s.accept()
 
     # start new thread takes 1st argument as a function name to be run, 2nd is the tuple of arguments to the function.
-    start_new_thread(clientthread, (conn, addr))
+    thread = TokThread(conn, addr)
+    thread.start()
