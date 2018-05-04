@@ -58,7 +58,6 @@ def tokenize_japanese(text):
 
 
 def tokenize_vietnamese(text):
-    os.chdir('UETSegmenter/')
     dochash = hashlib.sha1()
     timestring = str(time.time()).encode('utf-8')
     dochash.update(timestring)
@@ -67,14 +66,13 @@ def tokenize_vietnamese(text):
     doc.write(text.decode('utf-8'))
     doc.close()
     outfilename = 'vietnamese_tokens_' + dochash.hexdigest() + '.txt'
-    subprocess.call(['java', '-jar', 'uetsegmenter.jar', '-r', 'seg', '-m', 'models/', '-i',
+    subprocess.call(['java', '-jar', 'UETSegmenter/uetsegmenter.jar', '-r', 'seg', '-m', 'UETSegmenter/models/', '-i',
                      filename, '-o', outfilename])
     os.remove(filename)
     outf = open(outfilename, 'r')
     tokens = outf.read()
     outf.close()
     os.remove(outfilename)
-    os.chdir('..')
     return tokens
 
 
