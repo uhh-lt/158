@@ -23,6 +23,8 @@ def tokenize(sentence):
     results['lang'] = language
     if language == 'zh':
         tokens = tokenize_chinese(sentence)
+    elif language == 'vi':
+        tokens = tokenize_vietnamese(sentence)
     else:
         tokenizer = \
             subprocess.Popen(['Europarl/tokenizer.perl', '-l', language], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -35,7 +37,7 @@ def tokenize_chinese(text):
     dochash = hashlib.sha1()
     timestring = str(time.time()).encode('utf-8')
     dochash.update(timestring)
-    filename = 'chinese_tokens_' + dochash.hexdigest() + '.txt'
+    filename = 'chinese_text_' + dochash.hexdigest() + '.txt'
     doc = open(filename, 'w')
     doc.write(text.decode('utf-8'))
     doc.close()
@@ -43,6 +45,27 @@ def tokenize_chinese(text):
         subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', filename, 'UTF-8', '0'], stdout=subprocess.PIPE)
     tokens = tokenizer.communicate()[0].decode('utf-8')
     os.remove(filename)
+    return tokens
+
+
+def tokenize_vietnamese(text):
+    os.chdir('UETSegmenter/')
+    dochash = hashlib.sha1()
+    timestring = str(time.time()).encode('utf-8')
+    dochash.update(timestring)
+    filename = 'vietnamese_text_' + dochash.hexdigest() + '.txt'
+    doc = open(filename, 'w')
+    doc.write(text.decode('utf-8'))
+    doc.close()
+    outfilename = 'vietnamese_tokens_' + dochash.hexdigest() + '.txt'
+    subprocess.call(['java', '-jar', 'uetsegmenter.jar', '-r', 'seg', '-m', 'models/', '-i',
+                     filename, '-o', outfilename])
+    os.remove(filename)
+    outf = open(outfilename, 'r')
+    tokens = outf.read()
+    outf.close()
+    os.remove(outfilename)
+    os.chdir('..')
     return tokens
 
 
