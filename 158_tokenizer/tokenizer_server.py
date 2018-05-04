@@ -11,6 +11,7 @@ import configparser
 import subprocess
 import hashlib
 import time
+import MeCab
 
 
 def tokenize(sentence):
@@ -25,6 +26,8 @@ def tokenize(sentence):
         tokens = tokenize_chinese(sentence)
     elif language == 'vi':
         tokens = tokenize_vietnamese(sentence)
+    elif language == 'ja':
+        tokens = tokenize_japanese(sentence)
     else:
         tokenizer = \
             subprocess.Popen(['Europarl/tokenizer.perl', '-l', language], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -45,6 +48,12 @@ def tokenize_chinese(text):
         subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', filename, 'UTF-8', '0'], stdout=subprocess.PIPE)
     tokens = tokenizer.communicate()[0].decode('utf-8')
     os.remove(filename)
+    return tokens
+
+
+def tokenize_japanese(text):
+    tokenized = mecab.parse(text.decode('utf-8'))
+    tokens = tokenized.strip()
     return tokens
 
 
@@ -113,12 +122,13 @@ root = config.get('Files and directories', 'root')
 HOST = config.get('Sockets', 'host')  # Symbolic name meaning all available interfaces
 PORT = config.getint('Sockets', 'port')  # Arbitrary non-privileged port
 maxthreads = config.getint('Other', 'maxthreads')  # Maximum number of threads
-
 threadLimiter = threading.BoundedSemaphore(maxthreads)
+
+mecab = MeCab.Tagger("-Owakati")  # Japanese tokenizer
 
 # Bind socket to local host and port
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print('Socket created', file=sys.stderr)
+print('Socket created with max number of active threads set to', maxthreads, file=sys.stderr)
 
 try:
     s.bind((HOST, PORT))
