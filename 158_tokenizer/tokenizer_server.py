@@ -9,6 +9,8 @@ import sys
 import json
 import configparser
 import subprocess
+import hashlib
+import time
 
 
 def tokenize(sentence):
@@ -30,13 +32,17 @@ def tokenize(sentence):
 
 
 def tokenize_chinese(text):
-    doc = open('temp.txt', 'w')
+    dochash = hashlib.sha1()
+    timestring = str(time.time()).encode('utf-8')
+    dochash.update(timestring)
+    filename = 'chinese_tokens_' + dochash.hexdigest() + '.txt'
+    doc = open(filename, 'w')
     doc.write(text.decode('utf-8'))
     doc.close()
     tokenizer = \
-        subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', 'temp.txt', 'UTF-8', '0'], stdout=subprocess.PIPE)
+        subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', filename, 'UTF-8', '0'], stdout=subprocess.PIPE)
     tokens = tokenizer.communicate()[0].decode('utf-8')
-    os.remove('temp.txt')
+    os.remove(filename)
     return tokens
 
 
@@ -47,7 +53,11 @@ class TokThread(threading.Thread):
         self.address = address
 
     def run(self):
-        clientthread(self.connect, self.address)
+        threadLimiter.acquire()
+        try:
+            clientthread(self.connect, self.address)
+        finally:
+            threadLimiter.release()
 
 
 def clientthread(connect, address):
@@ -65,7 +75,6 @@ def clientthread(connect, address):
             now = datetime.datetime.now()
             print(now.strftime("%Y-%m-%d %H:%M"), '\t', address[0] + ':' + str(address[1]), '\t',
                   data.decode('utf-8').strip(), file=sys.stderr)
-            # print(output, file=sys.stderr)
             reply = json.dumps(output, ensure_ascii=False).encode('utf-8')
             connect.sendall(reply)
         break
@@ -80,9 +89,11 @@ config.read('tokenizer.cfg')
 root = config.get('Files and directories', 'root')
 HOST = config.get('Sockets', 'host')  # Symbolic name meaning all available interfaces
 PORT = config.getint('Sockets', 'port')  # Arbitrary non-privileged port
+maxthreads = config.getint('Other', 'maxthreads')  # Maximum number of threads
+
+threadLimiter = threading.BoundedSemaphore(maxthreads)
 
 # Bind socket to local host and port
-
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 print('Socket created', file=sys.stderr)
 
