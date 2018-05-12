@@ -31,4 +31,5 @@ They can be downloaded at https://nlp.stanford.edu/software/stanford-segmenter-2
 They can be downloaded at https://github.com/phongnt570/UETsegmenter/tree/master/models
 - For Japanese tokenizer to work, MeCab must be installed system-wide:
 `apt install mecab libmecab-dev mecab-ipadic-utf8`. Then, the `mecab-python3` module for Python must be installed.
+- See also the `requirements.txt` for the required Python modules.
 
