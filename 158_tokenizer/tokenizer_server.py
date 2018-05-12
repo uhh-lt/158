@@ -12,9 +12,10 @@ import subprocess
 import hashlib
 import time
 import MeCab
+import PyICU
 
 
-def tokenize(sentence):
+def tokenize(sentence, exotic_langs):
     results = {}
     identifier = \
         subprocess.Popen(['language_identification/fasttext', 'predict', 'language_identification/lid.176.ftz', '-'],
@@ -28,6 +29,8 @@ def tokenize(sentence):
         tokens = tokenize_vietnamese(sentence)
     elif language == 'ja':
         tokens = tokenize_japanese(sentence)
+    elif language in exotic_langs:
+        tokens = tokenize_icu(sentence, language)
     else:
         tokenizer = \
             subprocess.Popen(['Europarl/tokenizer.perl', '-l', language], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -76,6 +79,19 @@ def tokenize_vietnamese(text):
     return tokens
 
 
+def tokenize_icu(text, lang):
+    bd = PyICU.BreakIterator.createWordInstance(PyICU.Locale(lang))
+    text = text.decode('utf-8').replace(' ', '')
+    bd.setText(text)
+    start_pos = 0
+    tokens = ""
+    for obj in bd:
+        tokens += text[start_pos:obj]
+        tokens += ' '
+        start_pos = obj
+    return tokens
+
+
 class TokThread(threading.Thread):
     def __init__(self, connect, address):
         threading.Thread.__init__(self)
@@ -101,7 +117,7 @@ def clientthread(connect, address):
             break
         queries = data.decode('utf-8').strip().split('\n')
         for query in queries:
-            output = tokenize(query.encode('utf-8').strip())
+            output = tokenize(query.encode('utf-8').strip(), icu_langs)
             now = datetime.datetime.now()
             print(now.strftime("%Y-%m-%d %H:%M"), '\t', address[0] + ':' + str(address[1]), '\t',
                   data.decode('utf-8').strip(), file=sys.stderr)
@@ -115,6 +131,9 @@ def clientthread(connect, address):
 
 config = configparser.RawConfigParser()
 config.read('tokenizer.cfg')
+
+icu_langs = set(config.get('Languages', 'icu_langs').strip().split(','))
+print(icu_langs)
 
 root = config.get('Files and directories', 'root')
 HOST = config.get('Sockets', 'host')  # Symbolic name meaning all available interfaces
