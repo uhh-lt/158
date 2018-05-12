@@ -133,7 +133,6 @@ config = configparser.RawConfigParser()
 config.read('tokenizer.cfg')
 
 icu_langs = set(config.get('Languages', 'icu_langs').strip().split(','))
-print(icu_langs)
 
 root = config.get('Files and directories', 'root')
 HOST = config.get('Sockets', 'host')  # Symbolic name meaning all available interfaces
