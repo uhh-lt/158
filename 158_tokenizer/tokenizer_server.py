@@ -81,7 +81,7 @@ def tokenize_vietnamese(text):
 
 def tokenize_icu(text, lang):
     bd = PyICU.BreakIterator.createWordInstance(PyICU.Locale(lang))
-    text = text.decode('utf-8').replace(' ', '')
+    text = text.decode('utf-8')
     bd.setText(text)
     start_pos = 0
     tokens = ""
