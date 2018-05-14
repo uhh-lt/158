@@ -1,0 +1,4 @@
+version: '2'
+services:
+  tokenizer:
+    build: 158_tokenizer
