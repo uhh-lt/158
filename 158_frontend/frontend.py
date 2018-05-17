@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
 
-from flask import Flask, render_template, send_from_directory, redirect, url_for, request
+import configparser
+import random
+
 import jsonrpcclient
+from flask import Flask, render_template, send_from_directory, redirect, url_for, request
+
+config = configparser.ConfigParser()
+config.read('frontend.ini')
+
+if 'services' not in config:
+    config['services'] = {}
+
+if 'tokenizer' not in config['services']:
+    config['services']['tokenizer'] = 'http://localhost:5001'
+
+tokenizers = [url for url in config['services']['tokenizer'].split('\n') if url]
 
 app = Flask(__name__)
 
@@ -18,7 +32,8 @@ def wsd_redirect():
 
 @app.route('/wsd', methods=['POST'])
 def wsd():
-    tokenization = jsonrpcclient.request('http://localhost:5001', 'tokenize', request.form['text'])
+    tokenizer_url = random.choice(tokenizers)
+    tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text'])
     return render_template('wsd.html', tokenization=tokenization)
 
 

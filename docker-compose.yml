@@ -8,3 +8,7 @@ services:
     build: 158_frontend
     ports:
     - '5000:5000'
+    volumes:
+    - './frontend-docker.ini:/usr/src/app/frontend.ini:ro'
+    links:
+    - tokenizer
