@@ -2,13 +2,21 @@ version: '2'
 services:
   tokenizer:
     build: 158_tokenizer
+    volumes:
+    - './158-docker.ini:/usr/src/app/158.ini:ro'
     ports:
     - '5001:5000'
+  disambiguator:
+    build: 158_disambiguator
+    volumes:
+    - './158-docker.ini:/usr/src/app/158.ini:ro'
+    ports:
+    - '5002:5000'
   frontend:
     build: 158_frontend
     ports:
     - '5000:5000'
     volumes:
-    - './frontend-docker.ini:/usr/src/app/frontend.ini:ro'
+    - './158-docker.ini:/usr/src/app/158.ini:ro'
     links:
     - tokenizer

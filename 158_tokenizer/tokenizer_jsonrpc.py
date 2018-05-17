@@ -11,9 +11,9 @@ from jsonrpcserver import methods
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 
-config = configparser.RawConfigParser()
-config.read('tokenizer.cfg')
-icu_langs = set(config.get('Languages', 'icu_langs').strip().split(','))
+config = configparser.ConfigParser()
+config.read('158.ini')
+icu_langs = set(config.get('tokenizer', 'icu_langs').strip().split(','))
 
 mecab = MeCab.Tagger("-Owakati")  # Japanese tokenizer
 

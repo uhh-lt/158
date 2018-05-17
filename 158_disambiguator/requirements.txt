@@ -1,0 +1,4 @@
+jsonrpcserver
+jsonrpcclient[requests]
+werkzeug
+uwsgi

@@ -7,7 +7,7 @@ import jsonrpcclient
 from flask import Flask, render_template, send_from_directory, redirect, url_for, request
 
 config = configparser.ConfigParser()
-config.read('frontend.ini')
+config.read('158.ini')
 
 if 'services' not in config:
     config['services'] = {}
