@@ -2,3 +2,5 @@ version: '2'
 services:
   tokenizer:
     build: 158_tokenizer
+    ports:
+    - '5000:5000'
