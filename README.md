@@ -6,7 +6,7 @@ This repository will contain all code for a demo of word sense induction and dis
 
 You need Docker and Docker Compose to run the microservices. After cloning the repository, run `docker-compose build` to build the container images.
 
-In case you have [SELinux enabled](https://stopdisablingselinux.com/), run the following command in advance: `chcon -t svirt_sandbox_file_t frontend-docker.ini`.
+In case you have [SELinux enabled](https://stopdisablingselinux.com/), run the following command in advance: `chcon -t svirt_sandbox_file_t 158-docker.ini`.
 
 ### Tokenization Service
 
