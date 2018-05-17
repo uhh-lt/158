@@ -40,7 +40,7 @@ def tokenize_sentence(text, exotic_langs):
 
         tokens = tokens.decode('utf-8').strip()
 
-    return {'lang': language, 'tokens': tokens.split()}
+    return {'language': language, 'tokens': tokens.split()}
 
 
 def tokenize_chinese(text):
