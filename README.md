@@ -14,6 +14,16 @@ Running `docker-compose up tokenizer` runs the tokenization service on the port 
 
 * `tokenize(text) # => {'language': 'language', tokens: ['Token', '...']}`
 
+### Disambiguation Service
+
+Running `docker-compose up disambiguator` runs the tokenization service on the port `5002`. The service exposes the following JSON-RPC API:
+
+* `disambiguate(language, tokens) # => ?`
+
 ### Frontend
 
 Running `docker-compose up frontend` runs the front-end on the port `5000`.
+
+### Everything Together
+
+Just run `docker-compose up`.

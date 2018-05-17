@@ -20,3 +20,4 @@ services:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     links:
     - tokenizer
+    - disambiguator
