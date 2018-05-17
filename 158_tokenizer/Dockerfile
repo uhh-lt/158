@@ -6,7 +6,7 @@ COPY . /usr/src/app
 
 RUN \
 apt-get update && \
-apt-get install --no-install-recommends -y -o Dpkg::Options::="--force-confold" build-essential libicu-dev libmecab-dev && \
+apt-get install --no-install-recommends -y -o Dpkg::Options::="--force-confold" build-essential libicu-dev mecab libmecab-dev mecab-ipadic-utf8 && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/*
 

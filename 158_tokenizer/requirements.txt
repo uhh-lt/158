@@ -1,2 +1,5 @@
 PyICU
 mecab-python3
+jsonrpcserver
+jsonrpcclient[requests]
+werkzeug
