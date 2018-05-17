@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+<form id="form" method="POST" action="{{ url_for('.wsd') }}" onsubmit="validate()">
+<textarea id="text" rows="10" name="text" placeholder="A bank is a financial institution."></textarea>
+<button type="submit">Submit</button>
+</form>
+
+<script type="text/javascript">
+  function validate() {
+    if (document.forms["form"]["text"].value.trim() == "") {
+      document.forms["form"]["text"].value = document.forms["form"]["text"].placeholder;
+    }
+}
+</script>
+{% endblock %}

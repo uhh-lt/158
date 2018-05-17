@@ -8,6 +8,10 @@ You need Docker and Docker Compose to run the microservices. After cloning the r
 
 ### Tokenization Service
 
-Running `docker-compose up tokenizer` runs the tokenization service on the port `5000`. The service exposes the following JSON-RPC API:
+Running `docker-compose up tokenizer` runs the tokenization service on the port `5001`. The service exposes the following JSON-RPC API:
 
-* `tokenize(text) # => {'lang': 'language', tokens: ['Token', '...']}`
+* `tokenize(text) # => {'language': 'language', tokens: ['Token', '...']}`
+
+### Frontend
+
+Running `docker-compose up frontend` runs the front-end on the port `5000`.

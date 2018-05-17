@@ -3,4 +3,8 @@ services:
   tokenizer:
     build: 158_tokenizer
     ports:
+    - '5001:5000'
+  frontend:
+    build: 158_frontend
+    ports:
     - '5000:5000'
