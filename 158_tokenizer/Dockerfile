@@ -27,4 +27,4 @@ COPY . .
 
 USER nobody
 
-CMD ["uwsgi", "--http", "0.0.0.0:5000", "--master", "--module", "tokenizer_jsonrpc:application", "--processes", "4", "--threads", "1", "--harakiri", "30"]
+CMD ["uwsgi", "--http", "0.0.0.0:5000", "--master", "--module", "tokenizer_jsonrpc:app", "--processes", "4", "--threads", "1", "--harakiri", "30"]

@@ -15,7 +15,11 @@ if 'services' not in config:
 if 'tokenizer' not in config['services']:
     config['services']['tokenizer'] = 'http://localhost:5001'
 
+if 'disambiguator' not in config['services']:
+    config['services']['disambiguator'] = 'http://localhost:5002'
+
 tokenizers = [url for url in config['services']['tokenizer'].split('\n') if url]
+disambiguators = [url for url in config['services']['disambiguator'].split('\n') if url]
 
 app = Flask(__name__)
 
