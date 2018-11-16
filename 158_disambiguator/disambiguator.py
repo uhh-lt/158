@@ -6,9 +6,6 @@ from jsonrpcserver import methods
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 
-config = configparser.ConfigParser()
-config.read('158.ini')
-
 
 @methods.add
 def disambiguate(language, tokens):
@@ -22,4 +19,7 @@ def app(request):
 
 
 if __name__ == '__main__':
+    config = configparser.ConfigParser()
+    config.read('158.ini')
+
     run_simple('localhost', 5002, app)
