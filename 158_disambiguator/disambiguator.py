@@ -11,6 +11,7 @@ from egvi import WSD
 
 @method
 def disambiguate(language, *tokens):
+    print('Choosing language')
     if language == 'en':
         inventory = "models/cc.en.300.vec.gz.top200.inventory.tsv"
     elif language == 'ru':
@@ -18,7 +19,9 @@ def disambiguate(language, *tokens):
     else:
         return 'Wrong lang'
     text = " ".join(tokens)
+    print('Loading wsd-inventory')
     wsd = WSD(inventory, language=language, verbose=True)
+    print('Making results')
     results = [(word, wsd.get_best_sense_id(text, word, 5)) for word in tokens]
 
     return results
