@@ -12,7 +12,7 @@ from egvi import WSD
 @method
 def disambiguate(language, *tokens):
     if language == 'en':
-        inventory = "models/cc.en.300.vec.gz.top100.inventory.tsv"
+        inventory = "models/cc.en.300.vec.gz.top200.inventory.tsv"
     elif language == 'ru':
         inventory = "models/cc.ru.300.vec.gz.top200.wsi-inventory.tsv"
     else:
