@@ -112,12 +112,15 @@ class WSD(object):
         :param target_word an ambigous word that need to be disambiguated
         :return a list of tuples (sense, confidence) """
 
-        try:
-            # try to use nltk tokenizer
-            tokens = word_tokenize(context)
-        except LookupError:
-            # do the simple tokenization if not installed
-            tokens = context.split(" ")
+        if isinstance(context, str):
+            try:
+                # try to use nltk tokenizer
+                tokens = word_tokenize(context)
+            except LookupError:
+                # do the simple tokenization if not installed
+                tokens = context.split(" ")
+        else:
+            tokens = context
 
         return self.disambiguate_tokenized(tokens, target_word, most_significant_num, ignore_case)
 
@@ -139,9 +142,10 @@ class WSD(object):
         # get vectors of the keywords that represent the senses
         sense_vectors = {}
         for sense in senses:
-            if self._skip_unknown_words and self._verbose and sense.keyword not in self._wv.vocab:
-                print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
-                    sense.keyword))
+            if self._skip_unknown_words and sense.keyword not in self._wv.vocab:
+                if self._verbose:
+                    print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
+                        sense.keyword))
             else:
                 sense_vectors[sense] = self._wv[sense.keyword]
 
@@ -152,9 +156,10 @@ class WSD(object):
                          len(context_word) - len(target_word) <= 1)
             if is_target: continue
 
-            if self._skip_unknown_words and self._verbose and context_word not in self._wv.vocab:
-                print("Warning: context word '{}' is not in the word embedding model. Skipping the word.".format(
-                    context_word))
+            if self._skip_unknown_words and context_word not in self._wv.vocab:
+                if self._verbose:
+                    print("Warning: context word '{}' is not in the word embedding model. Skipping the word.".format(
+                        context_word))
             else:
                 context_vectors[context_word] = self._wv[context_word]
 
@@ -180,7 +185,7 @@ class WSD(object):
         context_vector = mean(best_context_vectors, axis=0)
 
         # pick the sense which is the most similar to the context vector
-        sense_scores = [(sense, context_vector.dot(sense_vectors[sense])) for sense in sense_vectors]
+        sense_scores = [(sense, float(context_vector.dot(sense_vectors[sense]))) for sense in sense_vectors]
         return sorted(sense_scores, key=itemgetter(1), reverse=True)
 
 
