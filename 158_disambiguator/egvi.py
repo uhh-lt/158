@@ -139,9 +139,10 @@ class WSD(object):
         # get vectors of the keywords that represent the senses
         sense_vectors = {}
         for sense in senses:
-            if self._skip_unknown_words and self._verbose and sense.keyword not in self._wv.vocab:
-                print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
-                    sense.keyword))
+            if self._skip_unknown_words and sense.keyword not in self._wv.vocab:
+                if self._verbose:
+                    print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
+                        sense.keyword))
             else:
                 sense_vectors[sense] = self._wv[sense.keyword]
 
@@ -152,9 +153,10 @@ class WSD(object):
                          len(context_word) - len(target_word) <= 1)
             if is_target: continue
 
-            if self._skip_unknown_words and self._verbose and context_word not in self._wv.vocab:
-                print("Warning: context word '{}' is not in the word embedding model. Skipping the word.".format(
-                    context_word))
+            if self._skip_unknown_words and context_word not in self._wv.vocab:
+                if self._verbose:
+                    print("Warning: context word '{}' is not in the word embedding model. Skipping the word.".format(
+                        context_word))
             else:
                 context_vectors[context_word] = self._wv[context_word]
 
