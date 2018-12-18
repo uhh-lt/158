@@ -112,12 +112,15 @@ class WSD(object):
         :param target_word an ambigous word that need to be disambiguated
         :return a list of tuples (sense, confidence) """
 
-        try:
-            # try to use nltk tokenizer
-            tokens = word_tokenize(context)
-        except LookupError:
-            # do the simple tokenization if not installed
-            tokens = context.split(" ")
+        if isinstance(context, str):
+            try:
+                # try to use nltk tokenizer
+                tokens = word_tokenize(context)
+            except LookupError:
+                # do the simple tokenization if not installed
+                tokens = context.split(" ")
+        else:
+            tokens = context
 
         return self.disambiguate_tokenized(tokens, target_word, most_significant_num, ignore_case)
 
