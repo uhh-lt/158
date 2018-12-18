@@ -185,7 +185,7 @@ class WSD(object):
         context_vector = mean(best_context_vectors, axis=0)
 
         # pick the sense which is the most similar to the context vector
-        sense_scores = [(sense, context_vector.dot(sense_vectors[sense])) for sense in sense_vectors]
+        sense_scores = [(sense, float(context_vector.dot(sense_vectors[sense]))) for sense in sense_vectors]
         return sorted(sense_scores, key=itemgetter(1), reverse=True)
 
 

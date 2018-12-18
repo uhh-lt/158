@@ -13,13 +13,21 @@ from werkzeug.wrappers import Request, Response
 @method
 def disambiguate(context, *tokens):
     wsd = context['wsd']
-
-    results = list(tokens)
-
-    for i, token in enumerate(results):
-        sense_id, confidence = wsd.get_best_sense_id(tokens, token, 5)
-        # confidence is NumPy's float32, but not float
-        results[i] = (token, sense_id, float(confidence))
+    
+    results = list()
+    
+    for token in list(tokens):
+        token_sense = list()
+        senses = wsd.disambiguate(tokens, token, 5)
+        for sense in senses:
+            sense_dict = {"token": token,
+                          "word": sense[0].word,
+                          "keyword": sense[0].keyword,
+                          "cluster": sense[0].cluster,
+                          "confidence": sense[1]
+                         }
+            token_sense.append(sense_dict)
+        results.append(token_sense)
 
     return results
 
