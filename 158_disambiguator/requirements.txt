@@ -1,4 +1,8 @@
-jsonrpcserver>=3,<4
+jsonrpcserver>=4,<5
 jsonrpcclient[requests]
 werkzeug
 uwsgi
+clint
+gensim
+nltk
+pandas

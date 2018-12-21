@@ -55,4 +55,4 @@ if __name__ == '__main__':
         return Response(str(r), r.http_status, mimetype='application/json')
 
 
-    run_simple('localhost', 5002, app)
+    run_simple('0.0.0.0', 5002, app)

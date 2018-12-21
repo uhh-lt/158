@@ -1,6 +1,6 @@
 FROM python:3
 
-EXPOSE 5000
+EXPOSE 5002
 
 WORKDIR /usr/src/app
 
@@ -12,4 +12,4 @@ COPY . .
 
 USER nobody
 
-CMD ["uwsgi", "--http", "0.0.0.0:5000", "--master", "--module", "disambiguator:app", "--processes", "4", "--threads", "1", "--harakiri", "30"]
+CMD ["python3", "disambiguator_jsonrpc.py"]
