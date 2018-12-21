@@ -102,3 +102,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Model files
+*.npy
+*.gz
+*.pkl
+*.tsv
