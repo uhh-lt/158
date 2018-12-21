@@ -6,7 +6,7 @@ import tempfile
 
 import MeCab
 import PyICU
-from jsonrpcserver import methods
+from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 
@@ -85,16 +85,20 @@ def tokenize_icu(text, language):
     return tokens
 
 
-@methods.add
-def tokenize(text):
+@method
+def tokenize(context, text):
     return tokenize_sentence(text.strip(), icu_langs)
 
 
-@Request.application
-def app(request):
-    r = methods.dispatch(request.data.decode())
-    return Response(str(r), r.http_status, mimetype='application/json')
-
-
 if __name__ == '__main__':
+    config = configparser.ConfigParser()
+    config.read('158.ini')
+
+
+    @Request.application
+    def app(request):
+        r = dispatch(request.data.decode(), context={'config': config})
+        return Response(str(r), r.http_status, mimetype='application/json')
+
+
     run_simple('localhost', 5001, app)
