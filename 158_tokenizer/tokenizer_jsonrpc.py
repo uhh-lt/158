@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 
 import MeCab
-import PyICU
+import icu
 from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
@@ -74,7 +74,7 @@ def tokenize_vietnamese(text):
 
 
 def tokenize_icu(text, language):
-    bd = PyICU.BreakIterator.createWordInstance(PyICU.Locale(language))
+    bd = icu.BreakIterator.createWordInstance(icu.Locale(language))
     bd.setText(text)
     start_pos = 0
     tokens = ''
@@ -101,4 +101,4 @@ if __name__ == '__main__':
         return Response(str(r), r.http_status, mimetype='application/json')
 
 
-    run_simple('localhost', 5001, app)
+    run_simple('0.0.0.0', 5001, app)
