@@ -15,11 +15,15 @@ if 'services' not in config:
 if 'tokenizer' not in config['services']:
     config['services']['tokenizer'] = 'http://localhost:5001'
 
-if 'disambiguator' not in config['services']:
-    config['services']['disambiguator'] = 'http://localhost:5002'
+if 'disambiguator' not in config:
+    config['disambiguator'] = {'en': 'http://localhost:5002'}
 
 tokenizers = [url for url in config['services']['tokenizer'].split('\n') if url]
-disambiguators = [url for url in config['services']['disambiguator'].split('\n') if url]
+print(tokenizers)
+
+disambiguators = {language: url.split('\n') for language, url in config['disambiguator'].items() if url}
+print(disambiguators)
+
 
 app = Flask(__name__)
 
@@ -37,8 +41,18 @@ def wsd_redirect():
 @app.route('/wsd', methods=['POST'])
 def wsd():
     tokenizer_url = random.choice(tokenizers)
-    tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text'])
-    return render_template('wsd.html', tokenization=tokenization)
+    tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text']).data.result
+
+    disambiguator_url = random.choice(disambiguators.get(tokenization['language'], 'en'))
+    disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate', tokenization['tokens']).data.result
+
+    result = []
+
+    for senses in disambiguation:
+        sense = max(senses, key=lambda sense: sense['confidence'])
+        result.append(sense)
+
+    return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
 
 
 @app.route('/favicon.ico')

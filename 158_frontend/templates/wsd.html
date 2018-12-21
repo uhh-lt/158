@@ -1,9 +1,24 @@
 {% extends "layout.html" %}
 {% block content %}
 <p>Language: {{ tokenization.language }}</p>
-<ul>
-{% for token in tokenization.tokens %}
-  <li>{{ token }}</li>
-{% endfor %}
-</ul>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Token</th>
+      <th>Keyword</th>
+      <th>Confidence</th>
+      <th>Cluster</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sense in disambiguation %}
+      <tr>
+        <td>{{ sense['token'] }}</td>
+        <td>{{ sense['keyword'] }}</td>
+        <td>{{ '%.2f' % sense['confidence'] }}</td>
+        <td>{{ ', '.join(sense['cluster']) }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}

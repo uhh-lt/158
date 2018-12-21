@@ -1,19 +1,28 @@
-version: '2'
+version: '2.2'
 services:
   tokenizer:
     build: 158_tokenizer
+    init: true
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     ports:
-    - '5001:5000'
+    - '5001:5001'
   disambiguator:
     build: 158_disambiguator
+    init: true
+    environment:
+    - LANGUAGE=en
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
+    - './158_disambiguator/cc.en.300.vec.gz:/usr/src/app/cc.en.300.vec.gz:ro'
+    - './158_disambiguator/cc.en.300.vec.gz.pkl:/usr/src/app/cc.en.300.vec.gz.pkl:ro'
+    - './158_disambiguator/cc.en.300.vec.gz.pkl.vectors.npy:/usr/src/app/cc.en.300.vec.gz.pkl.vectors.npy:ro'
+    - './158_disambiguator/models/cc.en.300.vec.gz.top200.inventory.tsv:/usr/src/app/models/cc.en.300.vec.gz.top200.inventory.tsv:ro'
     ports:
-    - '5002:5000'
+    - '5002:5002'
   frontend:
     build: 158_frontend
+    init: true
     ports:
     - '5000:5000'
     volumes:
