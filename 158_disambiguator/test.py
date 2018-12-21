@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from jsonrpcclient import request
 
 tokens = ['I', 'wrote', 'my', 'program', 'in', 'Python', '.']
