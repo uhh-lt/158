@@ -1,6 +1,6 @@
 PyICU
 mecab-python3
-jsonrpcserver
+jsonrpcserver>=3,<4
 jsonrpcclient[requests]
 werkzeug
 uwsgi

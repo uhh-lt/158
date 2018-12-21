@@ -1,4 +1,4 @@
-jsonrpcserver
+jsonrpcserver>=3,<4
 jsonrpcclient[requests]
 werkzeug
 uwsgi
