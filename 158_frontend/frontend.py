@@ -6,6 +6,8 @@ import random
 import jsonrpcclient
 from flask import Flask, render_template, send_from_directory, redirect, url_for, request
 
+import app_web_assets
+
 config = configparser.ConfigParser()
 config.read('158.ini')
 
@@ -27,6 +29,7 @@ print(disambiguators)
 
 app = Flask(__name__)
 
+app_web_assets.init(app)
 
 @app.route('/')
 def index():

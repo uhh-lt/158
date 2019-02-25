@@ -3,7 +3,20 @@
 <head>
   <meta charset="utf-8"/>
 </head>
+
 <body>
 {% block content %}{% endblock %}
+
+<link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/base-min.css">
+<link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-min.css">
+<link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-responsive-min.css">
+<link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/forms-min.css">
+<link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/buttons-min.css">
+<link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/menus-min.css">
+
+{% assets "scss_all" %}
+  <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="{{ ASSET_URL }}">
+{% endassets %}
+
 </body>
 </html>
