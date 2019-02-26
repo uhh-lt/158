@@ -6,7 +6,20 @@
 </head>
 
 <body>
+
+<div id="content">
+
+<nav id="menu" class="pure-menu pure-menu-horizontal">
+  <ul class="pure-menu-list">
+    <li class="pure-menu-item"><h1>Watasense</h1></li>
+    <li class="pure-menu-item">{% if '/' == request.path %}Analysis{% else %}<a href="{{ url_for('.index') }}">Analysis</a>{% endif %}</li>
+    {% if '/wsd' == request.path %}<li class="pure-menu-item">Results</li>{% endif %}
+  </ul>
+</nav>
+
 {% block content %}{% endblock %}
+
+</div>
 
 <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/base-min.css">
 <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/grids-min.css">
