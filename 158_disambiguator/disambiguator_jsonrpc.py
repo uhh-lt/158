@@ -8,6 +8,25 @@ from egvi import WSD
 from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
+from flask import Flask, request, Response
+
+
+config = configparser.ConfigParser()
+config.read('158.ini')
+
+language = os.environ.get('LANGUAGE', 'en')
+
+if 'ru' == language:
+    inventory = 'models/cc.ru.300.vec.gz.top200.wsi-inventory.tsv'
+elif 'en' == language:
+    inventory = 'models/cc.en.300.vec.gz.top200.inventory.tsv'
+else:
+    raise Exception('No language available')
+
+wsd = WSD(inventory, language=language, verbose=True)
+print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
+
+app = Flask(__name__)
 
 
 @method
@@ -32,27 +51,12 @@ def disambiguate(context, *tokens):
     return results
 
 
+@app.route("/", methods=['GET', 'POST'])
+def index():
+    req = request.get_data().decode()
+    response = dispatch(req, context={'config': config, 'wsd': wsd})
+    return Response(str(response), response.http_status, mimetype="application/json")
+
+
 if __name__ == '__main__':
-    config = configparser.ConfigParser()
-    config.read('158.ini')
-
-    language = os.environ.get('LANGUAGE', 'en')
-
-    if 'ru' == language:
-        inventory = 'models/cc.ru.300.vec.gz.top200.wsi-inventory.tsv'
-    elif 'en' == language:
-        inventory = 'models/cc.en.300.vec.gz.top200.inventory.tsv'
-    else:
-        raise Exception('No language available')
-
-    wsd = WSD(inventory, language=language, verbose=True)
-    print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
-
-
-    @Request.application
-    def app(request):
-        r = dispatch(request.data.decode(), context={'config': config, 'wsd': wsd})
-        return Response(str(r), r.http_status, mimetype='application/json')
-
-
-    run_simple('0.0.0.0', 5002, app)
+    app.run(host='0.0.0.0', port=5002)

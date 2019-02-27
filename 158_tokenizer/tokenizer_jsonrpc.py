@@ -9,12 +9,16 @@ import icu
 from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
+from flask import Flask, request, Response
+
 
 config = configparser.ConfigParser()
 config.read('158.ini')
 icu_langs = set(config.get('tokenizer', 'icu_langs').strip().split(','))
 
 mecab = MeCab.Tagger("-Owakati")  # Japanese tokenizer
+
+app = Flask(__name__)
 
 
 def tokenize_sentence(text, exotic_langs):
@@ -84,21 +88,17 @@ def tokenize_icu(text, language):
         start_pos = obj
     return tokens
 
-
 @method
 def tokenize(context, text):
     return tokenize_sentence(text.strip(), icu_langs)
 
 
+@app.route("/", methods=['GET', 'POST'])
+def index():
+    req = request.get_data().decode()
+    response = dispatch(req, context={'config': config})
+    return Response(str(response), response.http_status, mimetype="application/json")
+
+
 if __name__ == '__main__':
-    config = configparser.ConfigParser()
-    config.read('158.ini')
-
-
-    @Request.application
-    def app(request):
-        r = dispatch(request.data.decode(), context={'config': config})
-        return Response(str(r), r.http_status, mimetype='application/json')
-
-
-    run_simple('0.0.0.0', 5001, app)
+    app.run(host='0.0.0.0', port=5001)
