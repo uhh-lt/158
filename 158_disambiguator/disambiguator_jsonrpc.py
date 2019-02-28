@@ -16,12 +16,11 @@ config.read('158.ini')
 
 language = os.environ.get('LANGUAGE', 'en')
 
-if 'ru' == language:
-    inventory = 'models/cc.ru.300.vec.gz.top200.wsi-inventory.tsv'
-elif 'en' == language:
-    inventory = 'models/cc.en.300.vec.gz.top200.inventory.tsv'
-else:
+try:
+    inventory = config.get('models', language.lower())
+except:
     raise Exception('No language available')
+
 
 wsd = WSD(inventory, language=language, verbose=True)
 print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
