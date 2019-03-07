@@ -6,3 +6,4 @@ clint
 gensim
 nltk
 pandas
+Flask

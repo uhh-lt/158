@@ -1,3 +1,4 @@
 Flask
+Flask-Assets
 jsonrpcclient[requests]
 uwsgi
