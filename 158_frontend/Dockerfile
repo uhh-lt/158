@@ -6,7 +6,10 @@ WORKDIR /usr/src/app
 
 COPY requirements.txt ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN conda install -y -c conda-forge uwsgi libiconv&& \
+sed -rn '/(uwsgi)/!p' -i requirements.txt && \
+pip install --no-cache-dir -r requirements.txt && \
+conda clean -a
 
 COPY . .
 
