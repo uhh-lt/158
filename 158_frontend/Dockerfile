@@ -6,10 +6,13 @@ WORKDIR /usr/src/app
 
 COPY requirements.txt ./
 
-RUN conda install -y -c conda-forge uwsgi libiconv&& \
+RUN \
+apt-get update && \
+apt-get install --no-install-recommends -y -o Dpkg::Options::="--force-confold" uwsgi && \
+apt-get clean && \
+rm -rf /var/lib/apt/lists/* && \
 sed -rn '/(uwsgi)/!p' -i requirements.txt && \
-pip install --no-cache-dir -r requirements.txt && \
-conda clean -a
+pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
