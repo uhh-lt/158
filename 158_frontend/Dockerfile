@@ -6,13 +6,7 @@ WORKDIR /usr/src/app
 
 COPY requirements.txt ./
 
-RUN \
-apt-get update && \
-apt-get install --no-install-recommends -y -o Dpkg::Options::="--force-confold" uwsgi && \
-apt-get clean && \
-rm -rf /var/lib/apt/lists/* && \
-sed -rn '/(uwsgi)/!p' -i requirements.txt && \
-pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
