@@ -33,6 +33,9 @@ def disambiguate(context, *tokens):
     wsd = context['wsd']
     
     results = list()
+
+    if type(tokens[0]) is list:
+        tokens = tokens[0]
     
     for token in tokens:
         token_sense = list()
