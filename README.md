@@ -22,8 +22,28 @@ Running `docker-compose up disambiguator` runs the tokenization service on the p
 
 ### Frontend
 
-Running `docker-compose up frontend` runs the front-end on the port `5000`.
+Running `docker-compose up frontend` runs the front-end on the port `5000`. In order to balance the workload, the frontend sends each processing request to a random host listed in the configuration file (see below).
 
 ### Everything Together
 
-Just run `docker-compose up`.
+Just run `docker-compose up`; the provided example [docker-compose.yml](docker-compose.yml) is self-sufficient (as soon the files are placed correctly).
+
+## Configuration
+
+Every microservice reads the `158.ini` configuration file, see example [158-docker.ini](158-docker.ini). It is a good idea to share the same read-only configuration file between all the containers.
+
+### Section `[services]`
+
+* `tokenizer`: comma-separated list of hostnames and ports with the tokenizer servers
+
+### Section `[disambiguator]`
+
+* `en/ru/...`: comma-separated list of disambiguators for the specified language, one list per language
+
+### Section `[models]`
+
+* `en/ru/...`: path to the sense inventory corresponding to the specified language
+
+### Section `[tokenizer]`
+
+* `icu_langs`: list of exotic languages for which [ICU](https://github.com/ovalhub/pyicu) tokenization is used
