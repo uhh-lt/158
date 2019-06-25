@@ -92,13 +92,13 @@ def load_globally(word_vectors_fpath):
     return wv
 
 
-def get_nns_old(target, topn=TOPN):
+def get_nns(target, topn=TOPN):
     nns = wv.most_similar(positive=[target], negative=[], topn=topn)
     nns = [(word, score) for word, score in nns if minimize(word) != minimize(target)]
     return nns
 
 
-def get_nns(target, topn=TOPN):
+def get_nns_faiss(target, topn=TOPN):
     """
     Get target neighbors by faiss
     """
@@ -180,7 +180,12 @@ def wsi(ego, topn=TOPN):
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
-    if verbose: print("{}\t{:f} sec.".format(ego, time() - tic))
+    if verbose:
+        print("{}\t{:f} sec.".format(ego, time() - tic))
+
+    log_filename = "learn_speed_{}.tsv".format(topn)
+    with codecs.open(log_filename, "a", "utf-8") as out:
+        out.write("{}\t{} sec\t\n".format(ego, time() - tic))
 
     return {"network": ego_network, "nodes": nodes}
 
@@ -198,7 +203,8 @@ def draw_ego(G, show=False, save_fpath=""):
                      font_color='black',
                      node_size=sizes)
 
-    if show: plt.show()
+    if show:
+        plt.show()
     if save_fpath != "":
         plt.savefig(save_fpath)
 
@@ -259,6 +265,13 @@ def run(language="ru", eval_vocabulary=False, visualize=True, show_plot=False):
 
     # perform word sense induction
     for topn in [50, 100, 200]:
+
+        # Add logging
+        log_filename = "learn_speed_{}.tsv".format(topn)
+        with codecs.open(log_filename, "w", "utf-8") as out:
+            out.write("word\ttime\t\n")
+
+
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
