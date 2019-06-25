@@ -1,0 +1,9 @@
+faiss
+numpy
+pandas
+gensim
+chinese_whispers
+clint
+nltk
+bidict
+networkx
