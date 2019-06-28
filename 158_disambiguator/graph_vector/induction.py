@@ -7,13 +7,15 @@ from glob import glob
 from collections import Counter
 from traceback import format_exc
 from os.path import join, exists
+from typing import List, Dict, Set
 
 import faiss
 import numpy as np
 import networkx as nx
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 from networkx import Graph
 from pandas import read_csv
-import matplotlib.pyplot as plt
 from gensim.models import KeyedVectors
 from chinese_whispers import chinese_whispers, aggregate_clusters
 
@@ -24,7 +26,8 @@ wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-TOPN = 50
+# Max number of neighbors
+TOP_N = 200
 verbose = True
 
 try:
@@ -33,7 +36,7 @@ except NameError:
     wv = None
 
 
-def get_ru_wsi_vocabulary():
+def get_ru_wsi_vocabulary() -> Set:
     dataset_names = ["active-dict", "wiki-wiki", "bts-rnc"]
 
     voc = set(["ключ", "замок", "коса"])
@@ -56,7 +59,7 @@ def get_ru_wsi_vocabulary():
     return voc
 
 
-def get_sorted_vocabulary(vectors_fpath):
+def get_sorted_vocabulary(vectors_fpath: str) -> List:
     with gzip.open(vectors_fpath, "rb") as in_f:
         vocabulary = []
         for i, line in enumerate(in_f):
@@ -65,13 +68,13 @@ def get_sorted_vocabulary(vectors_fpath):
     return vocabulary
 
 
-def save_to_gensim_format(wv, output_fpath):
+def save_to_gensim_format(wv, output_fpath: str):
     tic = time()
     wv.save(output_fpath)
     print("Saved in {} sec.".format(time() - tic))
 
 
-def load_globally(word_vectors_fpath):
+def load_globally(word_vectors_fpath: str):
     global wv
     global index_faiss
 
@@ -92,30 +95,77 @@ def load_globally(word_vectors_fpath):
     return wv
 
 
-def get_nns(target, topn=TOPN):
+def get_nns_gensim(target: str, topn: int = TOP_N) -> List:
     nns = wv.most_similar(positive=[target], negative=[], topn=topn)
     nns = [(word, score) for word, score in nns if minimize(word) != minimize(target)]
     return nns
 
 
-def get_nns_faiss(target, topn=TOPN):
+def get_nns(target: str, neighbors_number: int = TOP_N):
     """
-    Get target neighbors by faiss
+    Get neighbors for target word
+    :param target: word to find neighbors
+    :param neighbors_number: number of neighbors
+    :return: list of target neighbors
     """
-    nns_list = list()
+    target_neighbors = voc_neighbors[target]
+    if len(target_neighbors) >= neighbors_number:
+        return target_neighbors[:neighbors_number]
+    else:
+        print("neighbors_number {} is more than precomputed {}".format(neighbors_number, len(target_neighbors)))
+        exit(1)
 
-    numpy_vec = np.array([wv[target]])
-    D, I = index_faiss.search(numpy_vec, topn + 1)
 
-    for _D, _I in zip(D, I):
+def get_nns_faiss_batch(targets: List, batch_size: int = 1000, neighbors_number: int = TOP_N) -> Dict:
+    """
+    Get neighbors for targets by Faiss with a batch-split.
+    :param targets: list of target words
+    :param batch_size: how many words to push into Faiss
+    :param neighbors_number: number of neighbors
+    :return: dict of word -> list of neighbors
+    """
+
+    word_neighbors_dict = dict()
+    print("Start Faiss with batches")
+
+    for start in tqdm(range(0, len(targets), batch_size)):
+        end = start + batch_size
+        batch_dict = get_nns_faiss(targets[start:end], neighbors_number=neighbors_number)
+        word_neighbors_dict = {**word_neighbors_dict, **batch_dict}
+
+    return word_neighbors_dict
+
+
+def get_nns_faiss(targets: List, neighbors_number: int = TOP_N) -> Dict:
+    """
+    Get nearest neighbors for list of targets without batches.
+    :param targets: list of target words
+    :param neighbors_number: number of neighbors
+    :return: dict of word -> list of neighbors
+    """
+
+    # Create array of batch vectors
+    numpy_vec = np.array([wv[target] for target in targets])
+
+    # Find neighbors
+    D, I = index_faiss.search(numpy_vec, neighbors_number + 1)
+
+    # Write neighbors into dict
+    word_neighbors_dict = dict()
+    for word_index, (_D, _I) in enumerate(zip(D, I)):  # slow zip !!!
+
+        nns_list = []
         for n, (d, i) in enumerate(zip(_D.ravel(), _I.ravel())):
             if n > 0:
                 nns_list.append((wv.index2word[i], d))
 
-    return nns_list
+        word_neighbors_dict[targets[word_index]] = nns_list
+
+    return word_neighbors_dict
 
 
-def in_nns(nns, word):
+def in_nns(nns, word: str) -> bool:
+    """Check if word is in list of tuples nns."""
     for w, s in nns:
         if minimize(word) == minimize(w):
             return True
@@ -123,27 +173,35 @@ def in_nns(nns, word):
     return False
 
 
-def get_pair(first, second):
+def get_pair(first, second) -> tuple:
     pair_lst = sorted([first, second])
     sorted_pair = (pair_lst[0], pair_lst[1])
     return sorted_pair
 
 
-def get_disc_pairs(ego, topn=TOPN):
+def get_disc_pairs(ego, neighbors_number: int = TOP_N) -> Set:
     pairs = set()
-    nns = get_nns(ego, topn)
+    nns = get_nns(ego, neighbors_number)
 
-    for i in range(len(nns)):
-        topi = nns[i][0]
-        nns_topi = get_nns(topi, topn)
-        nns_untopi = wv.most_similar(positive=[ego], negative=[topi], topn=topn)
-        untopi = nns_untopi[0][0]
-        if in_nns(nns, untopi): pairs.add(get_pair(topi, untopi))
+    # for i in range(len(nns)): # for i in nns?
+    for neighbor in nns:
+
+        # take top-neighbor X
+        topi = neighbor[0]
+
+        # find top neighbor Y for X
+        nns_topi = get_nns(topi, neighbors_number)
+
+        # find top neighbor Z for X-Y
+        untopi = wv.most_similar(positive=[ego], negative=[topi], topn=neighbors_number)[0][0]
+
+        if in_nns(nns, untopi):
+            pairs.add(get_pair(topi, untopi))
 
     return pairs
 
 
-def get_nodes(pairs):
+def get_nodes(pairs: Set) -> Counter:
     nodes = Counter()
     for src, dst in pairs:
         nodes.update([src])
@@ -152,15 +210,21 @@ def get_nodes(pairs):
     return nodes
 
 
-def list2dict(lst):
+def list2dict(lst: list) -> Dict:
     return {p[0]: p[1] for p in lst}
 
 
-def wsi(ego, topn=TOPN):
+def wsi(ego, neighbors_number: int = TOP_N) -> Dict:
+    """
+    Gets graph of neighbors for word (ego)
+    :param ego: word
+    :param neighbors_number: number of neighbors
+    :return: dict of network and nodes
+    """
     tic = time()
     ego_network = Graph(name=ego)
 
-    pairs = get_disc_pairs(ego, topn)
+    pairs = get_disc_pairs(ego, neighbors_number)
     nodes = get_nodes(pairs)
 
     ego_network.add_nodes_from([(node, {'size': size}) for node, size in nodes.items()])
@@ -169,7 +233,7 @@ def wsi(ego, topn=TOPN):
         related_related_nodes = list2dict(get_nns(r_node))
         related_related_nodes_ego = sorted(
             [(related_related_nodes[rr_node], rr_node) for rr_node in related_related_nodes if rr_node in ego_network],
-            reverse=True)[:topn]
+            reverse=True)[:neighbors_number]
 
         related_edges = []
         for w, rr_node in related_related_nodes_ego:
@@ -183,14 +247,14 @@ def wsi(ego, topn=TOPN):
     if verbose:
         print("{}\t{:f} sec.".format(ego, time() - tic))
 
-    log_filename = "learn_speed_{}.tsv".format(topn)
+    log_filename = "model/learn_speed_{}.tsv".format(neighbors_number)
     with codecs.open(log_filename, "a", "utf-8") as out:
-        out.write("{}\t{} sec\t\n".format(ego, time() - tic))
+        out.write("{}\t{}\t\n".format(ego, time() - tic))
 
     return {"network": ego_network, "nodes": nodes}
 
 
-def draw_ego(G, show=False, save_fpath=""):
+def draw_ego(G, show: bool = False, save_fpath: str = ""):
     colors = [1. / G.node[node]['label'] for node in G.nodes()]
     sizes = [300. * G.node[node]['size'] for node in G.nodes()]
 
@@ -211,7 +275,7 @@ def draw_ego(G, show=False, save_fpath=""):
     fig.clf()
 
 
-def get_target_words(language):
+def get_target_words(language: str) -> List:
     """ Takes as input a two symbol language code e.g. 'de' and returns all 
     words from the evaluation datasets for this language """
 
@@ -241,11 +305,11 @@ def get_cluster_lines(G, nodes):
     return lines
 
 
-def run(language="ru", eval_vocabulary=False, visualize=True, show_plot=False):
-    # parameters
-
+def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, show_plot: bool = False):
+    # Get w2v models paths
     wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
 
+    # Get list of words for language
     if eval_vocabulary:
         voc = get_target_words(language)
     else:
@@ -263,21 +327,24 @@ def run(language="ru", eval_vocabulary=False, visualize=True, show_plot=False):
     else:
         load_globally(wv_pkl_fpath)
 
+    # Load neighbors for vocabulary (globally)
+    global voc_neighbors
+    voc_neighbors = get_nns_faiss_batch(voc)
+
     # perform word sense induction
     for topn in [50, 100, 200]:
 
-        # Add logging
-        log_filename = "learn_speed_{}.tsv".format(topn)
+        # Add logging to file
+        log_filename = "model/learn_speed_{}.tsv".format(topn)
         with codecs.open(log_filename, "w", "utf-8") as out:
             out.write("word\ttime\t\n")
-
 
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
             for word in words:
                 try:
-                    words[word] = wsi(word, topn=topn)
+                    words[word] = wsi(word, neighbors_number=topn)
                     if visualize:
                         plt_fpath = output_fpath + ".{}.png".format(word)
                         draw_ego(words[word]["network"], show_plot, plt_fpath)
