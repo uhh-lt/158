@@ -183,16 +183,12 @@ def get_disc_pairs(ego, neighbors_number: int = TOP_N) -> Set:
     pairs = set()
     nns = get_nns(ego, neighbors_number)
 
-    # for i in range(len(nns)): # for i in nns?
     for neighbor in nns:
 
-        # take top-neighbor X
+        # take neighbor Y for target X
         topi = neighbor[0]
 
-        # find top neighbor Y for X
-        nns_topi = get_nns(topi, neighbors_number)
-
-        # find top neighbor Z for X-Y
+        # take top neighbor Z for X-Y
         untopi = wv.most_similar(positive=[ego], negative=[topi], topn=neighbors_number)[0][0]
 
         if in_nns(nns, untopi):
