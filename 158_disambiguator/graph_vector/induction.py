@@ -29,6 +29,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 # Max number of neighbors
 TOP_N = 200
 verbose = True
+FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
 
 try:
     wv
@@ -90,8 +91,15 @@ def load_globally(word_vectors_fpath: str):
         print("Using loaded word vectors.")
 
     wv.init_sims()
-    index_faiss = faiss.IndexFlatIP(wv.vector_size)
-    index_faiss.add(wv.syn0norm)
+
+    if FAISS_MODE == 'cpu':
+        index_faiss = faiss.IndexFlatIP(wv.vector_size)
+        index_faiss.add(wv.syn0norm)
+    elif FAISS_MODE == 'gpu':
+        res = faiss.StandardGpuResources()  # use a single GPU
+        index_flat = faiss.IndexFlatIP(wv.vector_size)  # build a flat (CPU) index
+        index_faiss = faiss.index_cpu_to_gpu(res, 0, index_flat)  # make it into a gpu index
+        index_faiss.add(wv.syn0norm)  # add vectors to the index
     return wv
 
 
@@ -225,6 +233,8 @@ def wsi(ego, neighbors_number: int = TOP_N) -> Dict:
 
     ego_network.add_nodes_from([(node, {'size': size}) for node, size in nodes.items()])
 
+    log_filename = "model/learn_speed_{}.tsv".format(neighbors_number)
+
     for r_node in ego_network:
         related_related_nodes = list2dict(get_nns(r_node))
         related_related_nodes_ego = sorted(
@@ -236,14 +246,14 @@ def wsi(ego, neighbors_number: int = TOP_N) -> Dict:
             if get_pair(r_node, rr_node) not in pairs:
                 related_edges.append((r_node, rr_node, {"weight": w}))
             else:
-                print("Skipping:", r_node, rr_node)
+                # print("Skipping:", r_node, rr_node)
+                pass
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
     if verbose:
         print("{}\t{:f} sec.".format(ego, time() - tic))
 
-    log_filename = "model/learn_speed_{}.tsv".format(neighbors_number)
     with codecs.open(log_filename, "a", "utf-8") as out:
         out.write("{}\t{}\t\n".format(ego, time() - tic))
 
@@ -338,7 +348,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
-            for word in words:
+            for word in tqdm(words):
                 try:
                     words[word] = wsi(word, neighbors_number=topn)
                     if visualize:

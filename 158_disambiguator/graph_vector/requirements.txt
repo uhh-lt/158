@@ -1,5 +1,4 @@
-faiss
-numpy
+numpy==1.16
 pandas
 gensim
 chinese_whispers
