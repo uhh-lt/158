@@ -29,7 +29,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 # Max number of neighbors
 TOP_N = 200
 verbose = True
-FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
+FAISS_MODE = 'gpu'  # 'gpu' or 'cpu'
 
 try:
     wv
@@ -335,7 +335,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
-    voc_neighbors = get_nns_faiss_batch(voc)
+    voc_neighbors = get_nns_faiss_batch(voc, batch_size=2500)
 
     # perform word sense induction
     for topn in [50, 100, 200]:
@@ -348,7 +348,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
-            for word in tqdm(words):
+            for word in words:
                 try:
                     words[word] = wsi(word, neighbors_number=topn)
                     if visualize:
