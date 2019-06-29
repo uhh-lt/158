@@ -29,7 +29,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 # Max number of neighbors
 TOP_N = 200
 verbose = True
-FAISS_MODE = 'gpu'  # 'gpu' or 'cpu'
+FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
 
 try:
     wv
@@ -90,7 +90,7 @@ def load_globally(word_vectors_fpath: str):
     else:
         print("Using loaded word vectors.")
 
-    wv.init_sims()
+    wv.init_sims(replace=True)
 
     if FAISS_MODE == 'cpu':
         index_faiss = faiss.IndexFlatIP(wv.vector_size)
@@ -152,11 +152,8 @@ def get_nns_faiss(targets: List, neighbors_number: int = TOP_N) -> Dict:
     :return: dict of word -> list of neighbors
     """
 
-    # Create array of batch vectors
-    numpy_vec = np.array([wv[target] for target in targets])
-
-    # Find neighbors
-    D, I = index_faiss.search(numpy_vec, neighbors_number + 1)
+    numpy_vec = np.array([wv[target] for target in targets])  # Create array of batch vectors
+    D, I = index_faiss.search(numpy_vec, neighbors_number + 1)  # Find neighbors
 
     # Write neighbors into dict
     word_neighbors_dict = dict()
@@ -187,20 +184,45 @@ def get_pair(first, second) -> tuple:
     return sorted_pair
 
 
-def get_disc_pairs(ego, neighbors_number: int = TOP_N) -> Set:
+def get_disc_pairs_old(ego, neighbors_number: int = TOP_N) -> Set:
     pairs = set()
     nns = get_nns(ego, neighbors_number)
 
     for neighbor in nns:
-
-        # take neighbor Y for target X
-        topi = neighbor[0]
+        topi = neighbor[0]  # take neighbor Y for target X
 
         # take top neighbor Z for X-Y
-        untopi = wv.most_similar(positive=[ego], negative=[topi], topn=neighbors_number)[0][0]
+        untopi = wv.most_similar(positive=[ego], negative=[topi], topn=1)[0][0]
 
         if in_nns(nns, untopi):
             pairs.add(get_pair(topi, untopi))
+
+    return pairs
+
+
+def get_disc_pairs(ego, neighbors_number: int = TOP_N) -> Set:
+    pairs = set()
+
+    nns = get_nns(ego, neighbors_number)
+    nns_words = [row[0] for row in nns]  # list of neighbors (only words)
+    wv_neighbors = np.array([wv[nns_word] for nns_word in nns_words])
+    wv_ego = np.array(wv[ego])
+    wv_negative_neighbors = (wv_neighbors - wv_ego) * (-1)  # untop vectors
+
+    D, I = index_faiss.search(wv_negative_neighbors, 1 + 1)  # find top neighbor for each difference
+
+    # Write down top-untop pairs
+    pairs_list_2 = list()
+    for word_index, (_D, _I) in enumerate(zip(D, I)):
+        for n, (d, i) in enumerate(zip(_D.ravel(), _I.ravel())):
+            if wv.index2word[i] != ego:  # faiss find either ego-word or untop we need
+                pairs_list_2.append((nns_words[word_index], wv.index2word[i]))
+                break
+
+    # Filter pairs
+    for pair in pairs_list_2:
+        if in_nns(nns, pair[1]):
+            pairs.add(get_pair(pair[0], pair[1]))
 
     return pairs
 
@@ -246,8 +268,7 @@ def wsi(ego, neighbors_number: int = TOP_N) -> Dict:
             if get_pair(r_node, rr_node) not in pairs:
                 related_edges.append((r_node, rr_node, {"weight": w}))
             else:
-                # print("Skipping:", r_node, rr_node)
-                pass
+                print("Skipping:", r_node, rr_node)
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
@@ -335,7 +356,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
-    voc_neighbors = get_nns_faiss_batch(voc, batch_size=2500)
+    voc_neighbors = get_nns_faiss_batch(voc, batch_size=1000)
 
     # perform word sense induction
     for topn in [50, 100, 200]:
