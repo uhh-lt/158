@@ -20,14 +20,12 @@ from gensim.models import KeyedVectors
 from chinese_whispers import chinese_whispers, aggregate_clusters
 
 from disambiguator import ensure_word_embeddings
-from word_sense_induction import minimize
 
 wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 # Max number of neighbors
-TOP_N = 200
 verbose = True
 FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
 
@@ -64,7 +62,8 @@ def get_sorted_vocabulary(vectors_fpath: str) -> List:
     with gzip.open(vectors_fpath, "rb") as in_f:
         vocabulary = []
         for i, line in enumerate(in_f):
-            if i == 0: continue
+            if i == 0:
+                continue
             vocabulary.append(str(line, "utf-8").split(" ")[0])
     return vocabulary
 
@@ -103,13 +102,7 @@ def load_globally(word_vectors_fpath: str):
     return wv
 
 
-def get_nns_gensim(target: str, topn: int = TOP_N) -> List:
-    nns = wv.most_similar(positive=[target], negative=[], topn=topn)
-    nns = [(word, score) for word, score in nns if minimize(word) != minimize(target)]
-    return nns
-
-
-def get_nns(target: str, neighbors_number: int = TOP_N):
+def get_nns(target: str, neighbors_number: int):
     """
     Get neighbors for target word
     :param target: word to find neighbors
@@ -124,7 +117,7 @@ def get_nns(target: str, neighbors_number: int = TOP_N):
         exit(1)
 
 
-def get_nns_faiss_batch(targets: List, batch_size: int = 1000, neighbors_number: int = TOP_N) -> Dict:
+def get_nns_faiss_batch(targets: List, batch_size: int = 1000, neighbors_number: int = 200) -> Dict:
     """
     Get neighbors for targets by Faiss with a batch-split.
     :param targets: list of target words
@@ -144,7 +137,7 @@ def get_nns_faiss_batch(targets: List, batch_size: int = 1000, neighbors_number:
     return word_neighbors_dict
 
 
-def get_nns_faiss(targets: List, neighbors_number: int = TOP_N) -> Dict:
+def get_nns_faiss(targets: List, neighbors_number: int = 200) -> Dict:
     """
     Get nearest neighbors for list of targets without batches.
     :param targets: list of target words
@@ -172,7 +165,7 @@ def get_nns_faiss(targets: List, neighbors_number: int = TOP_N) -> Dict:
 def in_nns(nns, word: str) -> bool:
     """Check if word is in list of tuples nns."""
     for w, s in nns:
-        if minimize(word) == minimize(w):
+        if word.strip().lower() == w.strip().lower():
             return True
 
     return False
@@ -184,23 +177,7 @@ def get_pair(first, second) -> tuple:
     return sorted_pair
 
 
-def get_disc_pairs_old(ego, neighbors_number: int = TOP_N) -> Set:
-    pairs = set()
-    nns = get_nns(ego, neighbors_number)
-
-    for neighbor in nns:
-        topi = neighbor[0]  # take neighbor Y for target X
-
-        # take top neighbor Z for X-Y
-        untopi = wv.most_similar(positive=[ego], negative=[topi], topn=1)[0][0]
-
-        if in_nns(nns, untopi):
-            pairs.add(get_pair(topi, untopi))
-
-    return pairs
-
-
-def get_disc_pairs(ego, neighbors_number: int = TOP_N) -> Set:
+def get_disc_pairs(ego, neighbors_number: int) -> Set:
     pairs = set()
 
     nns = get_nns(ego, neighbors_number)
@@ -240,7 +217,7 @@ def list2dict(lst: list) -> Dict:
     return {p[0]: p[1] for p in lst}
 
 
-def wsi(ego, neighbors_number: int = TOP_N) -> Dict:
+def wsi(ego, neighbors_number: int) -> Dict:
     """
     Gets graph of neighbors for word (ego)
     :param ego: word
@@ -258,7 +235,7 @@ def wsi(ego, neighbors_number: int = TOP_N) -> Dict:
     log_filename = "model/learn_speed_{}.tsv".format(neighbors_number)
 
     for r_node in ego_network:
-        related_related_nodes = list2dict(get_nns(r_node))
+        related_related_nodes = list2dict(get_nns(r_node, neighbors_number))
         related_related_nodes_ego = sorted(
             [(related_related_nodes[rr_node], rr_node) for rr_node in related_related_nodes if rr_node in ego_network],
             reverse=True)[:neighbors_number]
@@ -376,7 +353,8 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
                         plt_fpath = output_fpath + ".{}.png".format(word)
                         draw_ego(words[word]["network"], show_plot, plt_fpath)
                     lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
-                    for l in lines: out.write(l)
+                    for l in lines:
+                        out.write(l)
                 except KeyboardInterrupt:
                     break
                 except:
