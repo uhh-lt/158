@@ -26,7 +26,7 @@ wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 # Max number of neighbors
-verbose = True
+verbose = False
 FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
 
 try:
@@ -245,7 +245,8 @@ def wsi(ego, neighbors_number: int) -> Dict:
             if get_pair(r_node, rr_node) not in pairs:
                 related_edges.append((r_node, rr_node, {"weight": w}))
             else:
-                print("Skipping:", r_node, rr_node)
+                # print("Skipping:", r_node, rr_node)
+                pass
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
@@ -338,6 +339,8 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
     # perform word sense induction
     for topn in [50, 100, 200]:
 
+        print('{} neighbors'.format(topn))
+
         # Add logging to file
         log_filename = "model/learn_speed_{}.tsv".format(topn)
         with codecs.open(log_filename, "w", "utf-8") as out:
@@ -346,7 +349,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
-            for word in words:
+            for word in tqdm(words):
                 try:
                     words[word] = wsi(word, neighbors_number=topn)
                     if visualize:
