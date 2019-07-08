@@ -30,7 +30,8 @@ class Sense(SenseBase):  # this is needed as list is an unhashable type
 
 def ensure_dir(f):
     """ Make the directory. """
-    if not os.path.exists(f): os.makedirs(f)
+    if not os.path.exists(f):
+        os.makedirs(f)
 
 
 def ensure_word_embeddings(language):

@@ -1,3 +1,4 @@
+import os
 import gzip
 import codecs
 import logging
@@ -12,7 +13,6 @@ from typing import List, Dict, Set
 import faiss
 import numpy as np
 import networkx as nx
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 from networkx import Graph
 from pandas import read_csv
@@ -26,7 +26,7 @@ wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 # Max number of neighbors
-verbose = False
+verbose = True
 FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
 
 try:
@@ -127,10 +127,20 @@ def get_nns_faiss_batch(targets: List, batch_size: int = 1000, neighbors_number:
     """
 
     word_neighbors_dict = dict()
-    print("Start Faiss with batches")
+    if verbose:
+        print("Start Faiss with batches")
 
-    for start in tqdm(range(0, len(targets), batch_size)):
+    with codecs.open("logs/output", "a+", "utf-8") as out:
+        out.write("Start Faiss with batches\n")
+
+    for start in range(0, len(targets), batch_size):
         end = start + batch_size
+
+        if verbose:
+            print("batch {} to {} of {}".format(start, end, len(targets)))
+        with codecs.open("logs/output", "a", "utf-8") as out:
+            out.write("batch {} to {} of {}\n".format(start, end, len(targets)))
+
         batch_dict = get_nns_faiss(targets[start:end], neighbors_number=neighbors_number)
         word_neighbors_dict = {**word_neighbors_dict, **batch_dict}
 
@@ -232,7 +242,7 @@ def wsi(ego, neighbors_number: int) -> Dict:
 
     ego_network.add_nodes_from([(node, {'size': size}) for node, size in nodes.items()])
 
-    log_filename = "model/learn_speed_{}.tsv".format(neighbors_number)
+    log_filename = "logs/learn_speed_{}.tsv".format(neighbors_number)
 
     for r_node in ego_network:
         related_related_nodes = list2dict(get_nns(r_node, neighbors_number))
@@ -311,6 +321,10 @@ def get_cluster_lines(G, nodes):
 
 
 def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, show_plot: bool = False):
+    # create folder for logs
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+
     # Get w2v models paths
     wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
 
@@ -334,36 +348,51 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
-    voc_neighbors = get_nns_faiss_batch(voc, batch_size=1000)
+    voc_neighbors = get_nns_faiss_batch(voc)
 
     # perform word sense induction
     for topn in [50, 100, 200]:
 
-        print('{} neighbors'.format(topn))
+        if verbose:
+            print('{} neighbors'.format(topn))
+
+        with codecs.open("logs/output", "a+", "utf-8") as out:
+            out.write("{} neighbors\n".format(topn))
 
         # Add logging to file
-        log_filename = "model/learn_speed_{}.tsv".format(topn)
+        log_filename = "logs/learn_speed_{}.tsv".format(topn)
         with codecs.open(log_filename, "w", "utf-8") as out:
             out.write("word\ttime\t\n")
 
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
-            for word in tqdm(words):
-                try:
-                    words[word] = wsi(word, neighbors_number=topn)
-                    if visualize:
-                        plt_fpath = output_fpath + ".{}.png".format(word)
-                        draw_ego(words[word]["network"], show_plot, plt_fpath)
-                    lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
-                    for l in lines:
+
+        for index, word in enumerate(words):
+
+            if verbose:
+                print("{} neighbors, word {} of {}".format(topn, index + 1, len(words)))
+            with codecs.open("logs/output", "a", "utf-8") as out:
+                out.write("{} neighbors, word {} ({} of {})\n".format(topn, word, index + 1, len(words)))
+
+            try:
+                words[-1]
+                words[word] = wsi(word, neighbors_number=topn)
+                if visualize:
+                    plt_fpath = output_fpath + ".{}.png".format(word)
+                    draw_ego(words[word]["network"], show_plot, plt_fpath)
+                lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
+                for l in lines:
+                    with codecs.open(output_fpath, "w", "utf-8") as out:
                         out.write(l)
-                except KeyboardInterrupt:
-                    break
-                except:
-                    print("Error:", word)
-                    print(format_exc())
-        print("Output:", output_fpath)
+            except KeyboardInterrupt:
+                break
+            except:
+                print("Error:", word)
+                print(format_exc())
+                with codecs.open("logs/errors", "a+", "utf-8") as out:
+                    out.write("{}: {}\n".format(word, format_exc()))
+    # print("Output:", output_fpath)
 
 
 def main():
