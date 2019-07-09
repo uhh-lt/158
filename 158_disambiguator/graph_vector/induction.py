@@ -376,7 +376,6 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
                 out.write("{} neighbors, word {} ({} of {})\n".format(topn, word, index + 1, len(words)))
 
             try:
-                words[-1]
                 words[word] = wsi(word, neighbors_number=topn)
                 if visualize:
                     plt_fpath = output_fpath + ".{}.png".format(word)
