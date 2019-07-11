@@ -28,6 +28,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 # Max number of neighbors
 verbose = True
 FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
+LIMIT = 100000
 
 try:
     wv
@@ -333,6 +334,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
         voc = get_target_words(language)
     else:
         voc = get_sorted_vocabulary(wv_fpath)
+
     words = {w: None for w in voc}
 
     print("Language:", language)
@@ -369,6 +371,13 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
             out.write("word\tcid\tkeyword\tcluster\n")
 
         for index, word in enumerate(words):
+
+            if index + 1 == LIMIT:
+                print("OUT OF LIMIT {}".format(LIMIT))
+                with codecs.open("logs/output", "a", "utf-8") as out:
+                    out.write("OUT OF LIMIT".format(LIMIT))
+                
+                break
 
             if verbose:
                 print("{} neighbors, word {} of {}".format(topn, index + 1, len(words)))
