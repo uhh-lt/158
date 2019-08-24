@@ -5,6 +5,7 @@
 import os
 import requests
 from os.path import exists
+from zipfile import ZipFile
 from operator import itemgetter
 from collections import defaultdict, namedtuple
 
@@ -37,24 +38,22 @@ def ensure_dir(f):
 def ensure_word_embeddings(language):
     """ Ensures that the word vectors exist by downloading them if needed. """
 
-    ensure_dir("model")
+    dir_path = os.path.join("models", language)
+    ensure_dir(dir_path)
 
-    # English - the 158-th language
     if language == "en":
-        wv_fpath = "model/crawl-300d-2M.vec.gz"  # for English you need to pre-download it manually (currently)
-        wv_pkl_fpath = wv_fpath + ".pkl"
-        return wv_fpath, wv_pkl_fpath
+        wv_fpath = os.path.join(dir_path, "crawl-300d-2M.vec.zip")  # English: pre-download it manually
+        wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
+    else:
+        wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))   # Other 157 languages
+        wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
 
-    # The other 157 languages
-    wv_fpath = "model/cc.{}.300.vec.gz".format(language)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
     if not exists(wv_fpath):
-        wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
         print("Downloading the fasttext model from {}".format(wv_uri))
         r = requests.get(wv_uri, stream=True)
-        path = "model/cc.{}.300.vec.gz".format(language)
-        with open(path, "wb") as f:
+        with open(wv_fpath, "wb") as f:
             total_length = int(r.headers.get("content-length"))
             for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length / 1024) + 1):
                 if chunk:
