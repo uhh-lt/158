@@ -1,6 +1,7 @@
 import os
 import gzip
 import codecs
+import string
 import logging
 import argparse
 from time import time
@@ -27,8 +28,8 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 # Max number of neighbors
 verbose = True
-FAISS_MODE = 'cpu'  # 'gpu' or 'cpu'
 LIMIT = 100000
+BATCH_SIZE = 2000
 
 try:
     wv
@@ -75,7 +76,7 @@ def save_to_gensim_format(wv, output_fpath: str):
     print("Saved in {} sec.".format(time() - tic))
 
 
-def load_globally(word_vectors_fpath: str):
+def load_globally(word_vectors_fpath: str, faiss_gpu: bool):
     global wv
     global index_faiss
 
@@ -92,14 +93,14 @@ def load_globally(word_vectors_fpath: str):
 
     wv.init_sims(replace=True)
 
-    if FAISS_MODE == 'cpu':
-        index_faiss = faiss.IndexFlatIP(wv.vector_size)
-        index_faiss.add(wv.syn0norm)
-    elif FAISS_MODE == 'gpu':
+    if faiss_gpu:
         res = faiss.StandardGpuResources()  # use a single GPU
         index_flat = faiss.IndexFlatIP(wv.vector_size)  # build a flat (CPU) index
         index_faiss = faiss.index_cpu_to_gpu(res, 0, index_flat)  # make it into a gpu index
         index_faiss.add(wv.syn0norm)  # add vectors to the index
+    else:
+        index_faiss = faiss.IndexFlatIP(wv.vector_size)
+        index_faiss.add(wv.syn0norm)
     return wv
 
 
@@ -118,7 +119,7 @@ def get_nns(target: str, neighbors_number: int):
         exit(1)
 
 
-def get_nns_faiss_batch(targets: List, batch_size: int = 1000, neighbors_number: int = 200) -> Dict:
+def get_nns_faiss_batch(targets: List, batch_size: int, neighbors_number: int = 200) -> Dict:
     """
     Get neighbors for targets by Faiss with a batch-split.
     :param targets: list of target words
@@ -160,8 +161,10 @@ def get_nns_faiss(targets: List, neighbors_number: int = 200) -> Dict:
 
     # Write neighbors into dict
     word_neighbors_dict = dict()
-    for word_index, (_D, _I) in enumerate(zip(D, I)):  # slow zip !!!
+    for word_index, (_D, _I) in enumerate(zip(D, I)):
 
+        # Check if word is punct
+        word = targets[word_index]
         nns_list = []
         for n, (d, i) in enumerate(zip(_D.ravel(), _I.ravel())):
             if n > 0:
@@ -319,7 +322,8 @@ def get_cluster_lines(G, nodes):
     return lines
 
 
-def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, show_plot: bool = False):
+def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
+        show_plot: bool = False, faiss_gpu: bool = True):
 
     global dir_path, log_dir_path, log_output_path, log_error_path
 
@@ -348,17 +352,17 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
 
     # ensure the word vectors are saved in the fast to load gensim format
     if not exists(wv_pkl_fpath):
-        load_globally(wv_fpath)  # loads wv
+        load_globally(wv_fpath, faiss_gpu)  # loads wv
         save_to_gensim_format(wv, wv_pkl_fpath)
     else:
-        load_globally(wv_pkl_fpath)
+        load_globally(wv_pkl_fpath, faiss_gpu)
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
-    voc_neighbors = get_nns_faiss_batch(voc)
+    voc_neighbors = get_nns_faiss_batch(voc, batch_size=BATCH_SIZE)
 
     # perform word sense induction
-    for topn in [50, 100, 200]:
+    for topn in (50, 100, 200):
 
         if verbose:
             print('{} neighbors'.format(topn))
@@ -382,8 +386,10 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
                 print("OUT OF LIMIT {}".format(LIMIT))
                 with codecs.open(log_output_path, "a", "utf-8") as out:
                     out.write("OUT OF LIMIT".format(LIMIT))
-
                 break
+
+            if word in string.punctuation:
+                continue
 
             if verbose:
                 print("{} neighbors, word {} of {}".format(topn, index + 1, len(words)))
@@ -397,7 +403,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True, sh
                     draw_ego(words[word]["network"], show_plot, plt_fpath)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
                 for l in lines:
-                    with codecs.open(output_fpath, "w", "utf-8") as out:
+                    with codecs.open(output_fpath, "a", "utf-8") as out:
                         out.write(l)
             except KeyboardInterrupt:
                 break
@@ -415,9 +421,10 @@ def main():
     parser.add_argument("-eval", help="Use only evaluation vocabulary, not all words in the model.",
                         action="store_true")
     parser.add_argument("-viz", help="Visualize each ego networks.", action="store_true")
+    parser.add_argument("-faiss_gpu", help="Use GPU for faiss", action="store_true")
     args = parser.parse_args()
 
-    run(language=args.language, eval_vocabulary=args.eval, visualize=args.viz)
+    run(language=args.language, eval_vocabulary=args.eval, visualize=args.viz, faiss_gpu=args.faiss_gpu)
 
 
 if __name__ == '__main__':
