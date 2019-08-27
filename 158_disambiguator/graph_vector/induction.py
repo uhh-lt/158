@@ -392,9 +392,9 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
                 continue
 
             if verbose:
-                print("{} neighbors, word {} of {}".format(topn, index + 1, len(words)))
+                print("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), LIMIT))
             with codecs.open(log_output_path, "a", "utf-8") as out:
-                out.write("{} neighbors, word {} ({} of {})\n".format(topn, word, index + 1, len(words)))
+                out.write("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), LIMIT))
 
             try:
                 words[word] = wsi(word, neighbors_number=topn)
