@@ -30,6 +30,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 verbose = True
 LIMIT = 100000
 BATCH_SIZE = 2000
+GPU_DEVICE = 0
 
 try:
     wv
@@ -96,7 +97,7 @@ def load_globally(word_vectors_fpath: str, faiss_gpu: bool):
     if faiss_gpu:
         res = faiss.StandardGpuResources()  # use a single GPU
         index_flat = faiss.IndexFlatIP(wv.vector_size)  # build a flat (CPU) index
-        index_faiss = faiss.index_cpu_to_gpu(res, 0, index_flat)  # make it into a gpu index
+        index_faiss = faiss.index_cpu_to_gpu(res, GPU_DEVICE, index_flat)  # make it into a gpu index
         index_faiss.add(wv.syn0norm)  # add vectors to the index
     else:
         index_faiss = faiss.IndexFlatIP(wv.vector_size)
