@@ -132,16 +132,16 @@ def get_nns_faiss_batch(targets: List, batch_size: int, neighbors_number: int = 
     word_neighbors_dict = dict()
     if verbose:
         print("Start Faiss with batches")
-    with codecs.open(log_output_path, "a+", "utf-8") as out:
-        out.write("Start Faiss with batches\n")
+
+    logger_info.info("Start Faiss with batches")
 
     for start in range(0, len(targets), batch_size):
         end = start + batch_size
 
         if verbose:
             print("batch {} to {} of {}".format(start, end, len(targets)))
-        with codecs.open(log_output_path, "a", "utf-8") as out:
-            out.write("batch {} to {} of {}\n".format(start, end, len(targets)))
+
+        logger_info.info("batch {} to {} of {}".format(start, end, len(targets)))
 
         batch_dict = get_nns_faiss(targets[start:end], neighbors_number=neighbors_number)
         word_neighbors_dict = {**word_neighbors_dict, **batch_dict}
@@ -246,8 +246,6 @@ def wsi(ego, neighbors_number: int) -> Dict:
 
     ego_network.add_nodes_from([(node, {'size': size}) for node, size in nodes.items()])
 
-    log_speed_path = os.path.join(log_dir_path, "learn_speed_{}.tsv".format(neighbors_number))
-
     for r_node in ego_network:
         related_related_nodes = list2dict(get_nns(r_node, neighbors_number))
         related_related_nodes_ego = sorted(
@@ -266,9 +264,6 @@ def wsi(ego, neighbors_number: int) -> Dict:
     chinese_whispers(ego_network, weighting="top", iterations=20)
     if verbose:
         print("{}\t{:f} sec.".format(ego, time() - tic))
-
-    with codecs.open(log_speed_path, "a", "utf-8") as out:
-        out.write("{}\t{}\t\n".format(ego, time() - tic))
 
     return {"network": ego_network, "nodes": nodes}
 
@@ -323,18 +318,36 @@ def get_cluster_lines(G, nodes):
     return lines
 
 
+def create_logger(language: str, path: str, name: str = 'info', level=logging.INFO):
+    # Create logger for this language
+    logger = logging.getLogger("graphVector {} ({})".format(language, name))
+    logger.setLevel(level)
+
+    # Create the logging file handler
+    log_path = os.path.join(path, name + ".log")
+    fh = logging.FileHandler(log_path)
+
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+
+    logger.addHandler(fh)
+
+    return logger
+
+
 def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
         show_plot: bool = False, faiss_gpu: bool = True):
 
-    global dir_path, log_dir_path, log_output_path, log_error_path
+    global logger_info, logger_error
 
     dir_path = os.path.join("models", language)
     log_dir_path = os.path.join(dir_path, "logs")
-    log_output_path = os.path.join(log_dir_path, "output")
-    log_error_path = os.path.join(log_dir_path, "errors")
 
-    # create folders for language
+    # Create folder for language
     ensure_dir(log_dir_path)
+
+    logger_info = create_logger(language=language, path=log_dir_path)
+    logger_error = create_logger(language=language, path=log_dir_path, name='error', level=logging.ERROR)
 
     # Get w2v models paths
     wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
@@ -368,14 +381,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
         if verbose:
             print('{} neighbors'.format(topn))
 
-        # TODO: change logs writing to a logging library
-        with codecs.open(log_output_path, "a+", "utf-8") as out:
-            out.write("{} neighbors\n".format(topn))
-
-        # Add logging to file
-        log_speed_path = os.path.join(log_dir_path, "learn_speed_{}.tsv".format(topn))
-        with codecs.open(log_speed_path, "w", "utf-8") as out:
-            out.write("word\ttime\t\n")
+        logger_info.info("{} neighbors".format(topn))
 
         output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
@@ -385,17 +391,17 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
             if index + 1 == LIMIT:
                 print("OUT OF LIMIT {}".format(LIMIT))
-                with codecs.open(log_output_path, "a", "utf-8") as out:
-                    out.write("OUT OF LIMIT".format(LIMIT))
+
+                logger_info.error("OUT OF LIMIT".format(LIMIT))
                 break
 
             if word in string.punctuation:
                 continue
 
             if verbose:
-                print("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), LIMIT))
-            with codecs.open(log_output_path, "a", "utf-8") as out:
-                out.write("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), LIMIT))
+                print("{} neighbors, word {} of {}, LIMIT = {}\n".format(topn, index + 1, len(words), LIMIT))
+
+            logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), LIMIT))
 
             try:
                 words[word] = wsi(word, neighbors_number=topn)
@@ -411,9 +417,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
             except:
                 print("Error:", word)
                 print(format_exc())
-                with codecs.open(log_error_path, "a+", "utf-8") as out:
-                    out.write("{}: {}\n".format(word, format_exc()))
-    # print("Output:", output_fpath)
+                logger_error.error("{} neighbors, {}: {}".format(topn, word, format_exc()))
 
 
 def main():
