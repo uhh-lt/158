@@ -409,9 +409,10 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
                     plt_fpath = output_fpath + ".{}.png".format(word)
                     draw_ego(words[word]["network"], show_plot, plt_fpath)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
-                for l in lines:
-                    with codecs.open(output_fpath, "a", "utf-8") as out:
+                with codecs.open(output_fpath, "a", "utf-8") as out:
+                    for l in lines:
                         out.write(l)
+
             except KeyboardInterrupt:
                 break
             except:
