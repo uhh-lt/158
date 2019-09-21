@@ -41,13 +41,8 @@ def ensure_word_embeddings(language):
     dir_path = os.path.join("models", language)
     ensure_dir(dir_path)
 
-    if language == "en":
-        wv_fpath = os.path.join(dir_path, "crawl-300d-2M.vec.zip")  # English: pre-download it manually
-        wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip"
-    else:
-        wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))   # Other 157 languages
-        wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
-
+    wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))   # Other 157 languages
+    wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
     if not exists(wv_fpath):
