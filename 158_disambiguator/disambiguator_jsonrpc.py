@@ -6,14 +6,12 @@ import os
 
 from egvi import WSD
 from jsonrpcserver import dispatch, method
-from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
 config = configparser.ConfigParser()
 config.read('158.ini')
 
-# language = os.environ.get('LANGUAGE', 'en')
 # language_list = ['de', 'fr', 'ru', 'it', 'nl', 'zh', 'pt', 'sv', 'es', 'ar', 'fa']
 language_list = ['ru', 'en']
 
@@ -24,44 +22,47 @@ for language in language_list:
     except:
         raise Exception('No language available: {}'.format(language))
 
-# try:
-#    inventory = config.get('models', language.lower())
-# except:
-#    raise Exception('No language available')
-
 wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
     wsd_dict[language] = WSD(inventory_dict[language], language=language, verbose=True)
     print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
-# wsd = WSD(inventory, language=language, verbose=True)
-# print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
-
 app = Flask(__name__)
 
 
 @method
 def disambiguate(context, language, *tokens):
-    #wsd = context['wsd']
     wsd = wsd_dict[language]
 
     results = list()
 
+    # Different library versions pass variable in different ways
     if type(tokens[0]) is list:
         tokens = tokens[0]
 
     for token in tokens:
         token_sense = list()
         senses = wsd.disambiguate(tokens, token, 5)
-        for sense in senses:
+
+        # Could be no senses at all
+        if senses is None:
             sense_dict = {"token": token,
-                          "word": sense[0].word,
-                          "keyword": sense[0].keyword,
-                          "cluster": sense[0].cluster,
-                          "confidence": sense[1]
+                          "word": "UNKNOWN",
+                          "keyword": "UNKNOWN",
+                          "cluster": [],
+                          "confidence": 1.0
                           }
             token_sense.append(sense_dict)
+        else:
+            for sense in senses:
+                sense_dict = {"token": token,
+                              "word": sense[0].word,
+                              "keyword": sense[0].keyword,
+                              "cluster": sense[0].cluster,
+                              "confidence": sense[1]
+                              }
+                token_sense.append(sense_dict)
         results.append(token_sense)
 
     return results
@@ -70,7 +71,6 @@ def disambiguate(context, language, *tokens):
 @app.route("/", methods=['GET', 'POST'])
 def index():
     req = request.get_data().decode()
-    # response = dispatch(req, context={'config': config, 'wsd': wsd})
     response = dispatch(req, context={'config': config})
     return Response(str(response), response.http_status, mimetype="application/json")
 

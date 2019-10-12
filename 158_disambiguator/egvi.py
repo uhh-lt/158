@@ -6,6 +6,7 @@ import argparse
 from collections import defaultdict, namedtuple
 from operator import itemgetter
 from os.path import exists
+import os
 
 import requests
 from clint.textui import progress
@@ -28,24 +29,33 @@ class Sense(SenseBase):  # this is needed as list is an unhashable type
         return self.get_hash() == other.get_hash()
 
 
+def ensure_dir(f):
+    """ Make the directory. """
+    if not os.path.exists(f):
+        os.makedirs(f)
+
+
 def ensure_word_embeddings(language):
     """ Ensures that the word vectors exist by downloading them if needed. """
 
-    wv_fpath = "cc.{}.300.vec.gz".format(language)
+    dir_path = os.path.join("models", language)
+    ensure_dir(dir_path)
+
+    filename = "cc.{}.300.vec.gz".format(language)
+    wv_fpath = os.path.join(dir_path, filename)
+    wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
-    # TODO: change to Exception or smth
     if not exists(wv_fpath):
-        wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.bin.gz".format(language)
         print("Downloading the fasttext model from {}".format(wv_uri))
         r = requests.get(wv_uri, stream=True)
-        path = "cc.{}.300.vec.gz".format(language)
-        with open(path, "wb") as f:
+        with open(wv_fpath, "wb") as f:
             total_length = int(r.headers.get("content-length"))
             for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length / 1024) + 1):
                 if chunk:
                     f.write(chunk)
                     f.flush()
+
     return wv_fpath, wv_pkl_fpath
 
 
@@ -60,9 +70,12 @@ class WSD(object):
         """ :param inventory_fpath path to a CSV file with an induced word sense inventory
             :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
 
-        _, wv_pkl_fpath = ensure_word_embeddings(language)
-        self._wv = KeyedVectors.load(wv_pkl_fpath)
+        wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
+        print('Loading model')
+        # self._wv = KeyedVectors.load(wv_pkl_fpath)
+        self._wv = KeyedVectors.load_word2vec_format(wv_fpath, binary=False, unicode_errors="ignore")
         self._wv.init_sims(replace=True)  # normalize the loaded vectors to L2 norm
+        print('Loading inventory')
         self._inventory = self._load_inventory(inventory_fpath)
         self._verbose = verbose
         self._unknown = Sense("UNKNOWN", "UNKNOWN", "")
@@ -138,7 +151,8 @@ class WSD(object):
         # get the inventory
         senses = self.get_senses(target_word, ignore_case)
         if len(senses) == 0:
-            if self._verbose: print("Warning: word '{}' is not in the inventory. ".format(target_word))
+            if self._verbose:
+                print("Warning: word '{}' is not in the inventory. ".format(target_word))
             return [(self._unknown, 1.0)]
 
         # get vectors of the keywords that represent the senses
@@ -156,7 +170,8 @@ class WSD(object):
         for context_word in tokens:
             is_target = (context_word.lower().startswith(target_word.lower()) and
                          len(context_word) - len(target_word) <= 1)
-            if is_target: continue
+            if is_target:
+                continue
 
             if self._skip_unknown_words and context_word not in self._wv.vocab:
                 if self._verbose:
@@ -171,19 +186,26 @@ class WSD(object):
             scores = []
             for sense in sense_vectors:
                 scores.append(context_vectors[context_word].dot(sense_vectors[sense]))
-            context_word_scores[context_word] = abs(max(scores) - min(scores))
+            if len(scores) > 0:
+                context_word_scores[context_word] = abs(max(scores) - min(scores))
 
         best_context_words = sorted(context_word_scores.items(), key=itemgetter(1), reverse=True)[:most_significant_num]
 
         # average the selected context words
         best_context_vectors = []
-        if self._verbose: print(
-            "Best context words for '{}' in sentence : '{}' are:".format(target_word, " ".join(tokens)))
+        if self._verbose:
+            print("Best context words for '{}' in sentence : '{}' are:".format(target_word, " ".join(tokens)))
+
         i = 1
         for context_word, _ in best_context_words:
             best_context_vectors.append(context_vectors[context_word])
-            if self._verbose: print("-\t{}\t".format(i), context_word)
+            if self._verbose:
+                print("-\t{}\t".format(i), context_word)
             i += 1
+
+        if len(best_context_vectors) == 0:
+            return None
+
         context_vector = mean(best_context_vectors, axis=0)
 
         # pick the sense which is the most similar to the context vector
