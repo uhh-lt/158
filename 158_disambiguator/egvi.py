@@ -36,25 +36,17 @@ def ensure_dir(f):
 
 
 def ensure_word_embeddings(language):
-    """ Ensures that the word vectors exist by downloading them if needed. """
+    """ Ensures that the word vectors exist or raise Exception. """
 
     dir_path = os.path.join("models", language)
-    ensure_dir(dir_path)
+    # ensure_dir(dir_path)
 
     filename = "cc.{}.300.vec.gz".format(language)
     wv_fpath = os.path.join(dir_path, filename)
-    wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
     if not exists(wv_fpath):
-        print("Downloading the fasttext model from {}".format(wv_uri))
-        r = requests.get(wv_uri, stream=True)
-        with open(wv_fpath, "wb") as f:
-            total_length = int(r.headers.get("content-length"))
-            for chunk in progress.bar(r.iter_content(chunk_size=1024), expected_size=(total_length / 1024) + 1):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
+        raise Exception('No model for {} language: {}'.format(language, wv_fpath))
 
     return wv_fpath, wv_pkl_fpath
 
@@ -71,11 +63,10 @@ class WSD(object):
             :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
 
         wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
-        print('Loading model')
-        # self._wv = KeyedVectors.load(wv_pkl_fpath)
+        print('Loading KeyedVectors: {}'.format(language))
         self._wv = KeyedVectors.load_word2vec_format(wv_fpath, binary=False, unicode_errors="ignore")
         self._wv.init_sims(replace=True)  # normalize the loaded vectors to L2 norm
-        print('Loading inventory')
+        print('Loading inventory: {}'.format(language))
         self._inventory = self._load_inventory(inventory_fpath)
         self._verbose = verbose
         self._unknown = Sense("UNKNOWN", "UNKNOWN", "")
@@ -186,6 +177,8 @@ class WSD(object):
             scores = []
             for sense in sense_vectors:
                 scores.append(context_vectors[context_word].dot(sense_vectors[sense]))
+
+            # Could be no any scores
             if len(scores) > 0:
                 context_word_scores[context_word] = abs(max(scores) - min(scores))
 
@@ -203,6 +196,7 @@ class WSD(object):
                 print("-\t{}\t".format(i), context_word)
             i += 1
 
+        # Could be no context vectors
         if len(best_context_vectors) == 0:
             return None
 

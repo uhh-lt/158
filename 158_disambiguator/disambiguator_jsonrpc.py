@@ -9,18 +9,18 @@ from jsonrpcserver import dispatch, method
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
-config = configparser.ConfigParser()
-config.read('158.ini')
+INVENTORY_TOP = 200
 
-# language_list = ['de', 'fr', 'ru', 'it', 'nl', 'zh', 'pt', 'sv', 'es', 'ar', 'fa']
-language_list = ['ru', 'en']
+print("Loading language models")
+config = configparser.ConfigParser()
+config.read('/158.ini')
+
+language_list = config['disambiguator']['dis_langs'].split(',')
 
 inventory_dict = dict()
 for language in language_list:
-    try:
-        inventory_dict[language] = config.get('models', language)
-    except:
-        raise Exception('No language available: {}'.format(language))
+    inventory_dict[language] = "models/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv".format(lang=language,
+                                                                                                  knn=INVENTORY_TOP)
 
 wsd_dict = dict()
 for language in language_list:
@@ -33,17 +33,26 @@ app = Flask(__name__)
 
 @method
 def disambiguate(context, language, *tokens):
-    wsd = wsd_dict[language]
-
-    results = list()
 
     # Different library versions pass variable in different ways
     if type(tokens[0]) is list:
         tokens = tokens[0]
 
+    results = list()
+
+    if language in language_list:
+        wsd = wsd_dict[language]
+    else:
+        wsd = None
+        print('Error: unknown language: {}'.format(language))
+
     for token in tokens:
         token_sense = list()
-        senses = wsd.disambiguate(tokens, token, 5)
+
+        if wsd is not None:
+            senses = wsd.disambiguate(tokens, token, 5)
+        else:
+            senses = None
 
         # Could be no senses at all
         if senses is None:
