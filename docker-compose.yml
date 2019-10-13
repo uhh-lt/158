@@ -14,10 +14,6 @@ services:
     - LANGUAGE=en
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
-    - './158_disambiguator/cc.en.300.vec.gz:/usr/src/app/cc.en.300.vec.gz:ro'
-    - './158_disambiguator/cc.en.300.vec.gz.pkl:/usr/src/app/cc.en.300.vec.gz.pkl:ro'
-    - './158_disambiguator/cc.en.300.vec.gz.pkl.vectors.npy:/usr/src/app/cc.en.300.vec.gz.pkl.vectors.npy:ro'
-    - './158_disambiguator/models/cc.en.300.vec.gz.top200.inventory.tsv:/usr/src/app/models/cc.en.300.vec.gz.top200.inventory.tsv:ro'
     ports:
     - '5002:5002'
   frontend:
