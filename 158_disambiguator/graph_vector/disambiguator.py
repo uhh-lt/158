@@ -5,7 +5,6 @@
 import os
 import requests
 from os.path import exists
-from zipfile import ZipFile
 from operator import itemgetter
 from collections import defaultdict, namedtuple
 
@@ -41,7 +40,7 @@ def ensure_word_embeddings(language):
     dir_path = os.path.join("models", language)
     ensure_dir(dir_path)
 
-    wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))   # Other 157 languages
+    wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))
     wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
@@ -83,7 +82,6 @@ class WSD(object):
         for i, row in inventory_df.iterrows():
             cluster_words = [cw.strip() for cw in row.cluster.split(",")]
             inventory[row.word].append(Sense(row.word, row.keyword, cluster_words))
-
         return inventory
 
     def get_senses(self, word, ignore_case=IGNORE_CASE):
@@ -161,7 +159,8 @@ class WSD(object):
         for context_word in tokens:
             is_target = (context_word.lower().startswith(target_word.lower()) and
                          len(context_word) - len(target_word) <= 1)
-            if is_target: continue
+            if is_target:
+                continue
 
             if self._skip_unknown_words and self._verbose and context_word not in self._wv.vocab:
                 print("Warning: context word '{}' is not in the word embedding model. Skipping the word.".format(
@@ -181,12 +180,15 @@ class WSD(object):
 
         # average the selected context words
         best_context_vectors = []
-        if self._verbose: print(
-            "Best context words for '{}' in sentence : '{}' are:".format(target_word, " ".join(tokens)))
+        if self._verbose:
+            print("Best context words for '{}' in sentence : '{}' are:".format(target_word, " ".join(tokens)))
+
         i = 1
         for context_word, _ in best_context_words:
             best_context_vectors.append(context_vectors[context_word])
-            if self._verbose: print("-\t{}\t".format(i), context_word)
+            if self._verbose:
+                print("-\t{}\t".format(i), context_word)
+
             i += 1
         context_vector = mean(best_context_vectors, axis=0)
 
