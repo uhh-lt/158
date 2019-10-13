@@ -53,8 +53,8 @@ def wsd():
     result = []
 
     for senses in disambiguation:
-        sense = max(senses, key=lambda sense: sense['confidence'])
-        result.append(sense)
+        max_sense = max(senses, key=lambda sense: sense['confidence'])
+        result.append(max_sense)
 
     return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
 
