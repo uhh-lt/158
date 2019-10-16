@@ -13,7 +13,7 @@ INVENTORY_TOP = 200
 
 print("Loading language models")
 config = configparser.ConfigParser()
-config.read('/158.ini')
+config.read('158.ini')
 
 language_list = config['disambiguator']['dis_langs'].split(',')
 
