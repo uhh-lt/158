@@ -76,7 +76,9 @@ class WSD(object):
         inventory_df = read_csv(inventory_fpath, sep="\t", encoding="utf-8")
         inventory = defaultdict(lambda: list())
         for i, row in inventory_df.iterrows():
-            cluster_words = [cw.strip() for cw in row.cluster.split(",")]
+            row_cluster = str(row.cluster)
+            cluster_words = [cw.strip() for cw in row_cluster.split(",")]
+            # cluster_words = [cw.strip() for cw in row.cluster.split(",")]
             inventory[row.word].append(Sense(row.word, row.keyword, cluster_words))
 
         return inventory
