@@ -6,7 +6,7 @@ services:
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     ports:
-    - '5001:5001'
+    - '10001:5001'
   disambiguator:
     build: 158_disambiguator
     init: true
@@ -16,12 +16,12 @@ services:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     - './158_disambiguator/models:/usr/src/app/158_disambiguator/models:ro'
     ports:
-    - '5002:5002'
+    - '10002:5002'
   frontend:
     build: 158_frontend
     init: true
     ports:
-    - '5000:5000'
+    - '10000:5000'
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     links:
