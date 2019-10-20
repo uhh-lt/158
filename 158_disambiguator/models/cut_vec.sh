@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-for lang in en ru
+for lang in ar de es fa fr it nl pt ru sv zh
 do
     echo "LANG $lang"
     echo "Copying cc.$lang.300.vec.gz file..."
