@@ -35,16 +35,11 @@ def ensure_dir(f):
         os.makedirs(f)
 
 
-def ensure_word_embeddings(language, models_100k):
+def ensure_word_embeddings(language):
     """ Ensures that the word vectors exist or raise Exception. """
 
     dir_path = os.path.join("models", language)
-    # ensure_dir(dir_path)
-
-    if models_100k:
-        filename = "cc.{}.100k.300.vec.gz".format(language)
-    else:
-        filename = "cc.{}.300.vec.gz".format(language)
+    filename = "cc.{}.300.vec.gz".format(language)
     wv_fpath = os.path.join(dir_path, filename)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
@@ -61,13 +56,16 @@ IGNORE_CASE = False
 class WSD(object):
     """ Performs word sense disambiguation based on the induced word senses. """
 
-    def __init__(self, inventory_fpath, language, verbose=False, skip_unknown_words=True, models_100k=True):
+    def __init__(self, inventory_fpath, language, verbose=False, skip_unknown_words=True, dictionary=100000):
         """ :param inventory_fpath path to a CSV file with an induced word sense inventory
             :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
 
-        wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language, models_100k)
+        wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
         print('Loading KeyedVectors: {}'.format(language))
-        self._wv = KeyedVectors.load_word2vec_format(wv_fpath, binary=False, unicode_errors="ignore")
+        self._wv = KeyedVectors.load_word2vec_format(wv_fpath,
+                                                     binary=False,
+                                                     unicode_errors="ignore",
+                                                     limit=dictionary)
         self._wv.init_sims(replace=True)  # normalize the loaded vectors to L2 norm
         print('Loading inventory: {}'.format(language))
         self._inventory = self._load_inventory(inventory_fpath)

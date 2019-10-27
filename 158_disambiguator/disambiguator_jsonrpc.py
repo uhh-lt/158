@@ -10,7 +10,7 @@ from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
 INVENTORY_TOP = 200
-MODELS_100k = True
+DICTIONARY = 100000
 
 print("Loading language models")
 config = configparser.ConfigParser()
@@ -26,7 +26,7 @@ for language in language_list:
 wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
-    wsd_dict[language] = WSD(inventory_dict[language], language=language, verbose=True, models_100k=MODELS_100k)
+    wsd_dict[language] = WSD(inventory_dict[language], language=language, verbose=True, dictionary=DICTIONARY)
     print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
