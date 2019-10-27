@@ -9,29 +9,41 @@ class SqliteServer(object):
     def __init__(self, db, lang):
         """:param db: database name
            :return: Connection object or None"""
-        self.conn = None
         self.lang = lang
+        self.db = db
+        conn = self.create_connection()
+        print('SQLite init succeed')
+        conn.close()
+        self.vocab = self.__get_vocab__()
+
+    def create_connection(self):
+        """ create a database connection to the SQLite database
+        :return: Connection object or None
+        """
+        conn = None
         try:
-            self.conn = sqlite3.connect(db)
+            conn = sqlite3.connect(self.db)
         except Error as e:
             print(e)
-        else:
-            print('SQLite connection succeed')
-            self.vocab = self.__get_vocab__()
+
+        return conn
+
+    def sql_query(self, query: str):
+        conn = self.create_connection()
+        c = conn.cursor()
+        c.execute(query)
+        rows = c.fetchall()
+        conn.close()
+        return rows
 
     def __get_vocab__(self):
-        c = self.conn.cursor()
-        c.execute("SELECT WORD FROM {}".format(self.lang))
-        rows = c.fetchall()
-        c.close()
+        query = "SELECT WORD FROM {}".format(self.lang)
+        rows = self.sql_query(query)
         vocab = [item for sublist in rows for item in sublist]
         return vocab
 
     def get_word_vector(self, word):
-        c = self.conn.cursor()
-        sql_query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.lang, word=word)
-        c.execute(sql_query)
-        rows = c.fetchall()
-        c.close()
+        query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.lang, word=word)
+        rows = self.sql_query(query)
         word_vector = np.array(rows[0][1:])
         return word_vector
