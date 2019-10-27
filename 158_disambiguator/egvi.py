@@ -79,7 +79,6 @@ class WSD(object):
         for i, row in inventory_df.iterrows():
             row_cluster = str(row.cluster)
             cluster_words = [cw.strip() for cw in row_cluster.split(",")]
-            # cluster_words = [cw.strip() for cw in row.cluster.split(",")]
             inventory[row.word].append(Sense(row.word, row.keyword, cluster_words))
 
         return inventory
@@ -123,11 +122,9 @@ class WSD(object):
 
         if isinstance(context, str):
             try:
-                # try to use nltk tokenizer
-                tokens = word_tokenize(context)
+                tokens = word_tokenize(context)  # try to use nltk tokenizer
             except LookupError:
-                # do the simple tokenization if not installed
-                tokens = context.split(" ")
+                tokens = context.split(" ")  # do the simple tokenization if not installed
         else:
             tokens = context
 
@@ -181,7 +178,7 @@ class WSD(object):
             for sense in sense_vectors:
                 scores.append(context_vectors[context_word].dot(sense_vectors[sense]))
 
-            # Could be no any scores
+            # Could be no scores at all
             if len(scores) > 0:
                 context_word_scores[context_word] = abs(max(scores) - min(scores))
 
