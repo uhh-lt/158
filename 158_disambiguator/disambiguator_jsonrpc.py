@@ -4,18 +4,18 @@ import configparser
 import sys
 import os
 
-from egvi import WSD
+# from egvi import WSD
+from egvi_sqlite import WSD
 from jsonrpcserver import dispatch, method
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
 INVENTORY_TOP = 200
-DICTIONARY = 100000
+# DICTIONARY = 100000
+sqlite_db = "./models/Vectors.db"
 
-print("Loading language models")
 config = configparser.ConfigParser()
 config.read('158.ini')
-
 language_list = config['disambiguator']['dis_langs'].split(',')
 
 inventory_dict = dict()
@@ -23,10 +23,11 @@ model_path = "models/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
 for language in language_list:
     inventory_dict[language] = model_path.format(lang=language, knn=INVENTORY_TOP)
 
+print("Loading language models")
 wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
-    wsd_dict[language] = WSD(inventory_dict[language], language=language, verbose=True, dictionary=DICTIONARY)
+    wsd_dict[language] = WSD(inventory_dict[language], db_fpath=sqlite_db, language=language, verbose=True)
     print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
