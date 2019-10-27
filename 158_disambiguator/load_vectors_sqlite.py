@@ -56,11 +56,13 @@ def main():
         print('Start: {}'.format(lang))
         wv_fpath = "./models/{lang}/cc.{lang}.300.vec.gz".format(lang=lang)
         print('Loading model: {}'.format(lang))
-        wv = load_keyed_vectors(wv_fpath, limit=1000)
+        wv = load_keyed_vectors(wv_fpath, limit=100000)
         print('Creating dataframe: {}'.format(lang))
         vectors_df = create_vectors_df(wv)  # Create df from vectors
+        del wv
         print('Uploading to sqlite: {}'.format(lang))
         upload_vectors_sqlite(vectors_df, database=sqlite_db, table_name=lang)  # Create sqlite database
+    print('Finish')
 
 
 if __name__ == '__main__':
