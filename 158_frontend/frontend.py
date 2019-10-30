@@ -31,7 +31,7 @@ app = Flask(__name__)
 frontend_assets.init(app)
 
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
@@ -41,21 +41,20 @@ def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
 
-@app.route('/wsd', methods=['POST'])
+@app.route('/', methods=['POST'])
 def wsd():
     tokenizer_url = random.choice(tokenizers)
     tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text']).data.result
 
     disambiguator_url = random.choice(disambiguators)
-    disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate',
-                                           tokenization['language'], tokenization['tokens']).data.result
+    disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate', tokenization['language'],
+                                           tokenization['tokens']).data.result
 
     result = []
 
     for senses in disambiguation:
         max_sense = max(senses, key=lambda sense: sense['confidence'])
         result.append(max_sense)
-
     return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
 
 
