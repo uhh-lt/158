@@ -11,7 +11,6 @@ from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
 INVENTORY_TOP = 200
-# DICTIONARY = 100000
 sqlite_db = "./models/Vectors.db"
 
 config = configparser.ConfigParser()
@@ -28,6 +27,7 @@ wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
     wsd_dict[language] = WSD(inventory_dict[language], db_fpath=sqlite_db, language=language, verbose=True)
+    # wsd_dict[language] = WSD(inventory_dict[language], language=language, verbose=True)
     print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
