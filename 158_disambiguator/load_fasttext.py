@@ -59,7 +59,6 @@ def main():
                  'tr', 'tt', 'ug', 'uk', 'ur', 'uz', 'vec',
                  'vi', 'vls', 'vo', 'wa', 'war', 'xmf', 'yi',
                  'yo', 'zea', 'zh', 'ko']
-    lang_list = ['en', 'ru', 'cs']
     for lang in lang_list:
         print(lang)
         download_word_embeddings(language=lang)
