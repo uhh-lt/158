@@ -8,8 +8,6 @@ from operator import itemgetter
 from os.path import exists
 import os
 
-import requests
-from clint.textui import progress
 from gensim.models import KeyedVectors
 from nltk.tokenize import word_tokenize
 from numpy import mean
@@ -74,7 +72,7 @@ class WSD(object):
         self._skip_unknown_words = skip_unknown_words
 
     def _load_inventory(self, inventory_fpath):
-        inventory_df = read_csv(inventory_fpath, sep="\t", encoding="utf-8")
+        inventory_df = read_csv(inventory_fpath, sep="\t", encoding="utf-8", )
         inventory = defaultdict(lambda: list())
         for i, row in inventory_df.iterrows():
             row_cluster = str(row.cluster)
