@@ -18,12 +18,6 @@ def create_vectors_df(wv):
     return vectors_df
 
 
-# def dataframe_test(vectors_df, model):
-#     vector_from_df = np.array(vectors_df.loc[','].tolist())
-#     vector_from_model = wv[',']
-#     assert np.array_equal(vector_from_df, vector_from_model) is True
-
-
 def create_connection(db_file):
     """ create a database connection to the SQLite database
         specified by the db_file
