@@ -66,16 +66,16 @@ def main():
                  'yo', 'zea', 'zh', 'ko']
     neighbors = 200
 
+    inventory_path = "./models/inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
     for lang in lang_list:
         print('Start: {}'.format(lang))
-        inventory_path = "./models/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv".format(lang=lang,
-                                                                                              knn=neighbors)
-        if not os.path.exists(inventory_path):
+        inventory_lang_path = inventory_path.format(lang=lang, knn=neighbors)
+        if not os.path.exists(inventory_lang_path):
             print('No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=neighbors))
             continue
 
         print('Loading inventory: {}'.format(lang))
-        inventory_df = load_inventory(inventory_path)
+        inventory_df = load_inventory(inventory_lang_path)
         print('Uploading to sqlite: {}'.format(lang))
         upload_inventory_sqlite(inventory_df, database=sqlite_db, table_name=lang)  # Create sqlite database
     print('Finish')

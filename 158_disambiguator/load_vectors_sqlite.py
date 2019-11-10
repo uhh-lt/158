@@ -70,7 +70,7 @@ def main():
 
     for lang in lang_list:
         print('Start: {}'.format(lang))
-        wv_fpath = "./models/{lang}/cc.{lang}.300.vec.gz".format(lang=lang)
+        wv_fpath = "./models/fasttext_models/{lang}/cc.{lang}.300.vec.gz".format(lang=lang)
         print('Loading model: {}'.format(lang))
         wv = load_keyed_vectors(wv_fpath, limit=100000)
         print('Creating dataframe: {}'.format(lang))
