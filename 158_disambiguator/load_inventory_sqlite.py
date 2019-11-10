@@ -5,7 +5,7 @@ from sqlite3 import Error
 
 
 def load_inventory(inventory_fpath):
-    inventory_df = pd.read_csv(inventory_fpath, sep="\t", encoding="utf-8")
+    inventory_df = pd.read_csv(inventory_fpath, sep="\t", encoding="utf-8", quoting=3, error_bad_lines=False)
     return inventory_df
 
 
