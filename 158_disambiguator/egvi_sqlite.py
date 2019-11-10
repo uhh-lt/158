@@ -5,12 +5,8 @@
 import argparse
 from collections import defaultdict, namedtuple
 from operator import itemgetter
-from os.path import exists
 import os
 
-import requests
-from clint.textui import progress
-from gensim.models import KeyedVectors
 from nltk.tokenize import word_tokenize
 from numpy import mean
 from pandas import read_csv
@@ -31,14 +27,8 @@ class Sense(SenseBase):  # this is needed as list is an unhashable type
         return self.get_hash() == other.get_hash()
 
 
-def ensure_dir(f):
-    """ Make the directory. """
-    if not os.path.exists(f):
-        os.makedirs(f)
-
-
 MOST_SIGNIFICANT_NUM = 3
-IGNORE_CASE = False
+IGNORE_CASE = True
 
 
 class WSD(object):
@@ -57,27 +47,17 @@ class WSD(object):
 
     def _load_inventory(self, inventory_fpath):
         inventory_df = read_csv(inventory_fpath, sep="\t", encoding="utf-8")
-        inventory = defaultdict(lambda: list())
-        for i, row in inventory_df.iterrows():
-            row_cluster = str(row.cluster)
-            cluster_words = [cw.strip() for cw in row_cluster.split(",")]
-            inventory[row.word].append(Sense(row.word, row.keyword, cluster_words))
-
-        return inventory
+        inventory_df['cluster_words'] = inventory_df.cluster.str.split(",")
+        return inventory_df
 
     def get_senses(self, word, ignore_case=IGNORE_CASE):
         """ Returns a list of all available senses for a given word. """
-
         words = set([word])
         if ignore_case:
             words.add(word.title())
             words.add(word.lower())
 
-        senses = []
-        for word in words:
-            if word in self._inventory:
-                senses += self._inventory[word]
-
+        senses = self._inventory.loc[self._inventory.word.isin(words)]
         return senses
 
     def get_best_sense_id(self, context, target_word, most_significant_num=MOST_SIGNIFICANT_NUM,
@@ -130,13 +110,14 @@ class WSD(object):
 
         # get vectors of the keywords that represent the senses
         sense_vectors = {}
-        for sense in senses:
+        for _, sense in senses.iterrows():
             if self._skip_unknown_words and sense.keyword not in self.wv_vectors_db.vocab:
                 if self._verbose:
                     print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
                         sense.keyword))
             else:
-                sense_vectors[sense] = self.wv_vectors_db.get_word_vector(sense.keyword)
+                sense_hash = Sense(sense.word, sense.keyword, sense.cluster_words)
+                sense_vectors[sense_hash] = self.wv_vectors_db.get_word_vector(sense.keyword)
 
         # retrieve vectors of all context words
         context_vectors = {}
