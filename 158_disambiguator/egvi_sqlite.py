@@ -3,15 +3,14 @@
    python -m nltk.downloader punkt """
 
 import argparse
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from operator import itemgetter
-import os
 
 from nltk.tokenize import word_tokenize
 from numpy import mean
 from pandas import read_csv
 
-from sqlite_server import SqliteServer
+from sqlite_server import SqliteServerModel, SqliteServerInventory
 
 SenseBase = namedtuple('Sense', 'word keyword cluster')
 
@@ -34,21 +33,16 @@ IGNORE_CASE = True
 class WSD(object):
     """ Performs word sense disambiguation based on the induced word senses. """
 
-    def __init__(self, inventory_fpath, db_fpath, language, verbose=False, skip_unknown_words=True):
+    def __init__(self, inventories_db_fpath, vectors_db_fpath, language, verbose=False, skip_unknown_words=True):
         """ :param inventory_fpath path to a CSV file with an induced word sense inventory
             :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
 
-        self.wv_vectors_db = SqliteServer(db_fpath, language)
+        self.wv_vectors_db = SqliteServerModel(vectors_db_fpath, language)
         print('Loading inventory: {}'.format(language))
-        self._inventory = self._load_inventory(inventory_fpath)
+        self._inventory = SqliteServerInventory(inventories_db_fpath, language)
         self._verbose = verbose
         self._unknown = Sense("UNKNOWN", "UNKNOWN", "")
         self._skip_unknown_words = skip_unknown_words
-
-    def _load_inventory(self, inventory_fpath):
-        inventory_df = read_csv(inventory_fpath, sep="\t", encoding="utf-8")
-        inventory_df['cluster_words'] = inventory_df.cluster.str.split(",")
-        return inventory_df
 
     def get_senses(self, word, ignore_case=IGNORE_CASE):
         """ Returns a list of all available senses for a given word. """
@@ -57,7 +51,14 @@ class WSD(object):
             words.add(word.title())
             words.add(word.lower())
 
-        senses = self._inventory.loc[self._inventory.word.isin(words)]
+        rows = []
+        for word in words:
+            rows += self._inventory.get_word_senses(word)
+
+        senses = []
+        for row in rows:
+            senses.append(Sense(row[1], row[3], row[4].split(",")))
+
         return senses
 
     def get_best_sense_id(self, context, target_word, most_significant_num=MOST_SIGNIFICANT_NUM,
@@ -110,14 +111,13 @@ class WSD(object):
 
         # get vectors of the keywords that represent the senses
         sense_vectors = {}
-        for _, sense in senses.iterrows():
+        for sense in senses:
             if self._skip_unknown_words and sense.keyword not in self.wv_vectors_db.vocab:
                 if self._verbose:
                     print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
                         sense.keyword))
             else:
-                sense_hash = Sense(sense.word, sense.keyword, sense.cluster_words)
-                sense_vectors[sense_hash] = self.wv_vectors_db.get_word_vector(sense.keyword)
+                sense_vectors[sense] = self.wv_vectors_db.get_word_vector(sense.keyword)
 
         # retrieve vectors of all context words
         context_vectors = {}
