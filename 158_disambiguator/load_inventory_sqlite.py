@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 import os
+import logging
 from sqlite3 import Error
 
 
@@ -40,6 +41,7 @@ def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, table_name: 
 
 
 def main():
+    logging.basicConfig(filename="inventory_sqlite.log", level=logging.INFO, filemode='w')
     sqlite_db = "./models/Inventory.db"
     lang_list = ['af', 'als', 'am', 'an', 'ar', 'arz', 'as',
                  'ast', 'az', 'azb', 'ba', 'bar', 'bcl', 'be',
@@ -68,17 +70,17 @@ def main():
 
     inventory_path = "./models/inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
     for lang in lang_list:
-        print('Start: {}'.format(lang))
+        logging.info('Start: {}'.format(lang))
         inventory_lang_path = inventory_path.format(lang=lang, knn=neighbors)
         if not os.path.exists(inventory_lang_path):
-            print('No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=neighbors))
+            logging.error('No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=neighbors))
             continue
 
-        print('Loading inventory: {}'.format(lang))
+        logging.info('Loading inventory: {}'.format(lang))
         inventory_df = load_inventory(inventory_lang_path)
-        print('Uploading to sqlite: {}'.format(lang))
+        logging.info('Uploading to sqlite: {}'.format(lang))
         upload_inventory_sqlite(inventory_df, database=sqlite_db, table_name=lang)  # Create sqlite database
-    print('Finish')
+    logging.info('Finish')
 
 
 if __name__ == '__main__':
