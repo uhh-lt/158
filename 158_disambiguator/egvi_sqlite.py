@@ -38,7 +38,6 @@ class WSD(object):
             :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
 
         self.wv_vectors_db = SqliteServerModel(vectors_db_fpath, language)
-        print('Loading inventory: {}'.format(language))
         self._inventory = SqliteServerInventory(inventories_db_fpath, language)
         self._verbose = verbose
         self._unknown = Sense("UNKNOWN", "UNKNOWN", "")

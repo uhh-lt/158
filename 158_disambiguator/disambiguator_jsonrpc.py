@@ -2,14 +2,11 @@
 
 import configparser
 import sys
-import logging
 
 from egvi_sqlite import WSD
 from jsonrpcserver import dispatch, method
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
-
-logging.basicConfig(filename="disambiguator.log", level=logging.INFO, filemode='w')
 
 INVENTORY_TOP = 200
 sqlite_db = "./models/Vectors.db"
@@ -22,11 +19,11 @@ language_list = config['disambiguator']['dis_langs'].split(',')
 wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
-    logging.info('WSD[%s] model start' % language)
-    wsd_dict[language] = WSD(inventories_db_fpath=inventory_db, vectors_db_fpath=sqlite_db,
-                             language=language, verbose=True)
+    wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
+                             vectors_db_fpath=sqlite_db,
+                             language=language,
+                             verbose=True)
     print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
-    logging.info('WSD[%s] model loaded successfully' % language)
 
 app = Flask(__name__)
 
