@@ -36,12 +36,12 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/wsd')
+@app.route('/uwsd158')
 def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
 
-@app.route('/', methods=['POST'])
+@app.route('/uwsd158/', methods=['POST'])
 def wsd():
     tokenizer_url = random.choice(tokenizers)
     tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text']).data.result
