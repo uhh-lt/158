@@ -13,17 +13,21 @@ sqlite_db = "./models/Vectors.db"
 inventory_db = "./models/Inventory.db"
 
 config = configparser.ConfigParser()
-config.read('158.ini')
+config.read('../158-docker.ini')
 language_list = config['disambiguator']['dis_langs'].split(',')
 
 wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
-    wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
-                             vectors_db_fpath=sqlite_db,
-                             language=language,
-                             verbose=True)
-    print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
+    try:
+        wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
+                                 vectors_db_fpath=sqlite_db,
+                                 language=language,
+                                 verbose=True)
+    except Exception as e:
+        print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
+    else:
+        print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
 

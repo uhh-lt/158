@@ -10,7 +10,6 @@ class SqliteServer(object):
         self.table_name = table_name
         self.db = db
         conn = self.create_connection()
-        print('SQLite init succeed {table_name}'.format(table_name=table_name))
         conn.close()
         self.vocab = self.__get_vocab__()
 
