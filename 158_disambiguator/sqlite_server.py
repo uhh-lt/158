@@ -4,13 +4,13 @@ import numpy as np
 
 
 class SqliteServer(object):
-    def __init__(self, db, lang):
+    def __init__(self, db, table_name):
         """:param db: database name
            :return: Connection object or None"""
-        self.lang = lang
+        self.table_name = table_name
         self.db = db
         conn = self.create_connection()
-        print('SQLite init succeed')
+        print('SQLite init succeed {table_name}'.format(table_name=table_name))
         conn.close()
         self.vocab = self.__get_vocab__()
 
@@ -35,7 +35,7 @@ class SqliteServer(object):
         return rows
 
     def __get_vocab__(self):
-        query = "SELECT word FROM {}".format(self.lang)
+        query = "SELECT word FROM {}".format(self.table_name)
         rows = self.sql_query(query)
         vocab = set([item for sublist in rows for item in sublist])
         return vocab
@@ -45,7 +45,7 @@ class SqliteServerModel(SqliteServer):
     """Create a connection to the SQLite database with word vectors."""
 
     def __init__(self, db, lang):
-        super().__init__(db, lang)
+        super().__init__(db, table_name=lang)
 
     def get_word_vector(self, word):
         query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.lang, word=word)
@@ -58,9 +58,10 @@ class SqliteServerInventory(SqliteServer):
     """Create a connection to the SQLite database with language inventories."""
 
     def __init__(self, db, lang):
-        super().__init__(db, lang)
+        table_name = lang + "_"
+        super().__init__(db, table_name=table_name)
 
     def get_word_senses(self, word):
-        query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.lang, word=word)
+        query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.table_name, word=word)
         rows = self.sql_query(query)
         return rows

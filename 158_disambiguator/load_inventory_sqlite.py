@@ -38,7 +38,8 @@ def create_connection(db_file):
     return conn
 
 
-def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, table_name: str):
+def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, lang: str):
+    table_name = lang + "_"
     conn = create_connection(database)
     inventory.to_sql(table_name, conn, if_exists='replace', index=True)
     conn.close()
@@ -77,8 +78,7 @@ def main():
     inventory_path = "./models/inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
     for lang in lang_list:
         logging.info('Start: {}'.format(lang))
-	print('Start: {}'.format(lang))
-
+        print('Start: {}'.format(lang))
         inventory_lang_path = inventory_path.format(lang=lang, knn=neighbors)
         if not os.path.exists(inventory_lang_path):
             logging.error('No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=neighbors))
@@ -90,7 +90,7 @@ def main():
         inventory_df = load_inventory(inventory_lang_path)
         logging.info('Uploading to sqlite: {}'.format(lang))
         print('Uploading to sqlite: {}'.format(lang))
-        upload_inventory_sqlite(inventory_df, database=sqlite_db, table_name=lang)  # Create sqlite database
+        upload_inventory_sqlite(inventory_df, database=sqlite_db, lang=lang)  # Create sqlite database
     logging.info('Finish')
     print('Finish')
 
