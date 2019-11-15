@@ -2,6 +2,7 @@
 
 from jsonrpcclient import request
 
-text = 'I wrote my program in Python.'
-result = request('http://localhost:5001/', 'tokenize', text).data.result
+text = '我的人这年会'
+
+result = request('http://localhost:10151/', 'tokenize', text).data.result
 print(result)
