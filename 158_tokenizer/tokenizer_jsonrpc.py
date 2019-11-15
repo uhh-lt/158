@@ -3,6 +3,7 @@
 import configparser
 import subprocess
 import tempfile
+import codecs
 
 import MeCab
 import icu
@@ -47,12 +48,15 @@ def tokenize_sentence(text, exotic_langs):
 
 
 def tokenize_chinese(text):
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(text.encode('utf-8'))
 
-        with subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', f.name, 'UTF-8', '0'],
-                              stdout=subprocess.PIPE) as tokenizer:
-            tokens = tokenizer.communicate()[0].decode('utf-8')
+    tmp_filename = "temp_file"
+
+    with codecs.open(tmp_filename, "w", "utf-8") as out:
+        out.write(text)
+
+    with subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', tmp_filename, 'UTF-8', '0'],
+                          stdout=subprocess.PIPE) as tokenizer:
+        tokens = tokenizer.communicate()[0].decode('utf-8')
 
     return tokens
 
