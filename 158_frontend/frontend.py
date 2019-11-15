@@ -36,7 +36,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/uwsd158')
+@app.route('/uwsd158/')
 def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
@@ -44,11 +44,16 @@ def wsd_redirect():
 @app.route('/uwsd158/', methods=['POST'])
 def wsd():
     tokenizer_url = random.choice(tokenizers)
-    tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text']).data.result
-
     disambiguator_url = random.choice(disambiguators)
-    disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate', tokenization['language'],
-                                           tokenization['tokens']).data.result
+    tokenization = []
+    disambiguation = []
+
+    try:
+        tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text']).data.result
+        disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate',
+                                               tokenization['language'], tokenization['tokens']).data.result
+    except Exception as e:
+        print(e)
 
     result = []
 
