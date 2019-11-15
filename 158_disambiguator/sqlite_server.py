@@ -44,7 +44,8 @@ class SqliteServerModel(SqliteServer):
     """Create a connection to the SQLite database with word vectors."""
 
     def __init__(self, db, lang):
-        super().__init__(db, table_name=lang)
+        table_name = lang + "_"
+        super().__init__(db, table_name=table_name)
 
     def get_word_vector(self, word):
         query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.lang, word=word)

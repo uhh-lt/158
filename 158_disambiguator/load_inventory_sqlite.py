@@ -38,8 +38,7 @@ def create_connection(db_file):
     return conn
 
 
-def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, lang: str):
-    table_name = lang + "_"
+def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, table_name: str):
     conn = create_connection(database)
     inventory.to_sql(table_name, conn, if_exists='replace', index=True)
     conn.close()
@@ -90,7 +89,8 @@ def main():
         inventory_df = load_inventory(inventory_lang_path)
         logging.info('Uploading to sqlite: {}'.format(lang))
         print('Uploading to sqlite: {}'.format(lang))
-        upload_inventory_sqlite(inventory_df, database=sqlite_db, lang=lang)  # Create sqlite database
+        table_name = lang + "_"
+        upload_inventory_sqlite(inventory_df, database=sqlite_db, table_name=table_name)
     logging.info('Finish')
     print('Finish')
 

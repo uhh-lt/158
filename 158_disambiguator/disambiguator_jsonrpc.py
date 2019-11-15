@@ -13,7 +13,7 @@ sqlite_db = "./models/Vectors.db"
 inventory_db = "./models/Inventory.db"
 
 config = configparser.ConfigParser()
-config.read('../158-docker.ini')
+config.read('158.ini')
 language_list = config['disambiguator']['dis_langs'].split(',')
 
 wsd_dict = dict()

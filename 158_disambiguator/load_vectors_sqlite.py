@@ -77,7 +77,8 @@ def main():
         vectors_df = create_vectors_df(wv)  # Create df from vectors
         del wv
         print('Uploading to sqlite: {}'.format(lang))
-        upload_vectors_sqlite(vectors_df, database=sqlite_db, table_name=lang)  # Create sqlite database
+        table_name = lang + "_"
+        upload_vectors_sqlite(vectors_df, database=sqlite_db, table_name=table_name)  # Create sqlite database
     print('Finish')
 
 
