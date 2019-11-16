@@ -3,8 +3,7 @@ FROM python:3
 # FIXME: Java needed
 # Install OpenJDK-8
 RUN apt-get update && \
-    apt-get install -y openjdk-8-jdk && \
-    apt-get install -y ant && \
+    apt-get install -y default-jdk && \
     apt-get clean;
 
 # Fix certificate issues
@@ -16,8 +15,8 @@ RUN apt-get update && \
 # Setup JAVA_HOME -- useful for docker commandline
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
 RUN export JAVA_HOME
-
 ##########
+
 
 ENV FASTTEXT=0.1.0 EUROPARL=c29b00df9949fc23ab70e8b5d1542ec61ea553af
 

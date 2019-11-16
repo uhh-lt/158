@@ -12,7 +12,6 @@ from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
-
 config = configparser.ConfigParser()
 config.read('158.ini')
 icu_langs = set(config.get('tokenizer', 'icu_langs').strip().split(','))
@@ -49,14 +48,13 @@ def tokenize_sentence(text, exotic_langs):
 
 def tokenize_chinese(text):
 
-    tmp_filename = "temp_file"
+    with tempfile.NamedTemporaryFile(mode="w") as f:
+        f.write(text)
+        f.flush()
 
-    with codecs.open(tmp_filename, "w", "utf-8") as out:
-        out.write(text)
-
-    with subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', tmp_filename, 'UTF-8', '0'],
-                          stdout=subprocess.PIPE) as tokenizer:
-        tokens = tokenizer.communicate()[0].decode('utf-8')
+        with subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', f.name, 'UTF-8', '0'],
+                              stdout=subprocess.PIPE) as tokenizer:
+            tokens = tokenizer.communicate()[0].decode('utf-8')
 
     return tokens
 
@@ -69,6 +67,7 @@ def tokenize_japanese(text):
 def tokenize_vietnamese(text):
     with tempfile.NamedTemporaryFile() as fr, tempfile.NamedTemporaryFile('r') as fw:
         fr.write(text.encode('utf-8'))
+        fr.flush()
 
         subprocess.call(
             ['java', '-jar', 'UETSegmenter/uetsegmenter.jar', '-r', 'seg', '-m', 'UETSegmenter/models/',
@@ -91,6 +90,7 @@ def tokenize_icu(text, language):
         tokens += ' '
         start_pos = obj
     return tokens
+
 
 @method
 def tokenize(context, text):
