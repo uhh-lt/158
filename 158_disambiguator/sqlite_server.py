@@ -48,7 +48,7 @@ class SqliteServerModel(SqliteServer):
         super().__init__(db, table_name=table_name)
 
     def get_word_vector(self, word):
-        query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.lang, word=word)
+        query = "SELECT * FROM {table} WHERE word = '{word}'".format(table=self.table_name, word=word)
         rows = self.sql_query(query)
         word_vector = np.array(rows[0][1:])
         return word_vector
