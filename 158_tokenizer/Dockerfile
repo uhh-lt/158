@@ -1,6 +1,5 @@
 FROM python:3
 
-# FIXME: Java needed
 # Install OpenJDK-8
 RUN apt-get update && \
     apt-get install -y default-jdk && \
