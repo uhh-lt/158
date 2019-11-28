@@ -35,7 +35,7 @@ app = Flask(__name__)
 @method
 def disambiguate(context, language, *tokens):
     # Different library versions pass variable in different ways
-    if type(tokens[0]) is list:
+    if tokens[0] is list:
         tokens = tokens[0]
 
     results = list()
@@ -75,6 +75,23 @@ def disambiguate(context, language, *tokens):
         results.append(token_sense)
 
     return results
+
+
+@method
+def senses(context, language, word):
+    # Different library versions pass variable in different ways
+    if word is list:
+        word = word[0]
+
+    if language in language_list:
+        wsd = wsd_dict[language]
+    else:
+        wsd = None
+        print('Error: unknown language: {}'.format(language))
+
+    senses_result = wsd.get_senses(word)
+
+    return senses_result
 
 
 @app.route("/", methods=['GET', 'POST'])
