@@ -4,7 +4,7 @@ import configparser
 import random
 
 import jsonrpcclient
-from flask import Flask, render_template, send_from_directory, redirect, url_for, request
+from flask import Flask, render_template, send_from_directory, redirect, url_for, request, jsonify
 
 import frontend_assets
 
@@ -36,15 +36,16 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/uwsd158/')
+@app.route('/wsd/')
 def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
 
-@app.route('/uwsd158/', methods=['POST'])
+@app.route('/wsd', methods=['POST'])
 def wsd():
     tokenizer_url = random.choice(tokenizers)
     disambiguator_url = random.choice(disambiguators)
+
     tokenization = []
     disambiguation = []
 
@@ -61,6 +62,27 @@ def wsd():
         max_sense = max(senses, key=lambda sense: sense['confidence'])
         result.append(max_sense)
     return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
+
+
+@app.route('/senses', methods=['POST'])
+def senses():
+    disambiguator_url = random.choice(disambiguators)
+
+    senses = []
+
+    language = request.form["selected_language"]
+    word = request.form["word"]
+
+    try:
+        senses = jsonrpcclient.request(disambiguator_url, 'senses', language, word).data.result
+    except Exception as e:
+        print(e)
+        senses = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
+
+    if len(senses) == 0:
+        senses = [[word, "UNKNOWN", ["UNKNOWN"]]]
+
+    return render_template('senses.html', word=word, senses=senses)
 
 
 @app.route('/favicon.ico')
