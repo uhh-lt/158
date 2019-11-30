@@ -36,7 +36,7 @@
       <p><label for="word">Put your word and press the button below.</label></p>
       <select id="selected_language" name="selected_language">
           {% for language in langs_dict %}
-            {% if fullname == "English" %}
+            {% if language[0] == "English" %}
                 <option selected value="{{ language[1] }}">{{ language[0] }}</option>
             {% else %}
                 <option value="{{ language[1] }}">{{ language[0] }}</option>
