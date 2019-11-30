@@ -43,6 +43,8 @@ def wsd_redirect():
 
 @app.route('/wsd', methods=['POST'])
 def wsd():
+    text_input = request.form['text']
+
     tokenizer_url = random.choice(tokenizers)
     disambiguator_url = random.choice(disambiguators)
 
@@ -50,7 +52,7 @@ def wsd():
     disambiguation = []
 
     try:
-        tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', request.form['text']).data.result
+        tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', text_input).data.result
         disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate',
                                                tokenization['language'], tokenization['tokens']).data.result
     except Exception as e:
@@ -68,21 +70,21 @@ def wsd():
 def senses():
     disambiguator_url = random.choice(disambiguators)
 
-    senses = []
+    senses_list = []
 
     language = request.form["selected_language"]
     word = request.form["word"]
 
     try:
-        senses = jsonrpcclient.request(disambiguator_url, 'senses', language, word).data.result
+        senses_list = jsonrpcclient.request(disambiguator_url, 'senses', language, word).data.result
     except Exception as e:
         print(e)
-        senses = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
+        senses_list = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
 
-    if len(senses) == 0:
-        senses = [[word, "UNKNOWN", ["UNKNOWN"]]]
+    if len(senses_list) == 0:
+        senses_list = [[word, "UNKNOWN", ["UNKNOWN"]]]
 
-    return render_template('senses.html', word=word, senses=senses)
+    return render_template('senses.html', word=word, senses=senses_list)
 
 
 @app.route('/favicon.ico')
