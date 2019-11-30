@@ -2,6 +2,7 @@
 
 import configparser
 import random
+import json
 
 import jsonrpcclient
 from flask import Flask, render_template, send_from_directory, redirect, url_for, request, jsonify
@@ -30,10 +31,14 @@ app = Flask(__name__)
 
 frontend_assets.init(app)
 
+with open("langs.json") as json_file:
+    languages_dict = json.load(json_file)
+    languages_values = list(languages_dict.items())
+
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    return render_template('index.html', langs_dict=languages_values)
 
 
 @app.route('/wsd/')
@@ -69,7 +74,6 @@ def wsd():
 @app.route('/senses', methods=['POST'])
 def senses():
     disambiguator_url = random.choice(disambiguators)
-
     senses_list = []
 
     language = request.form["selected_language"]
