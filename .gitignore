@@ -109,3 +109,6 @@ ENV/
 *.pkl
 *.tsv
 158*/*.ini
+
+# Jupyter
+*.ipynb

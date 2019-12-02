@@ -5,8 +5,10 @@ services:
     init: true
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
+    - './158_tokenizer/stanford_segmenter:/usr/src/app/158_tokenizer/stanford_segmenter:ro'
+    - './158_tokenizer/UETSegmenter:/usr/src/app/158_tokenizer/UETSegmenter:ro'
     ports:
-    - '5001:5001'
+    - '10151:5001'
   disambiguator:
     build: 158_disambiguator
     init: true
@@ -14,17 +16,14 @@ services:
     - LANGUAGE=en
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
-    - './158_disambiguator/cc.en.300.vec.gz:/usr/src/app/cc.en.300.vec.gz:ro'
-    - './158_disambiguator/cc.en.300.vec.gz.pkl:/usr/src/app/cc.en.300.vec.gz.pkl:ro'
-    - './158_disambiguator/cc.en.300.vec.gz.pkl.vectors.npy:/usr/src/app/cc.en.300.vec.gz.pkl.vectors.npy:ro'
-    - './158_disambiguator/models/cc.en.300.vec.gz.top200.inventory.tsv:/usr/src/app/models/cc.en.300.vec.gz.top200.inventory.tsv:ro'
+    - './158_disambiguator/models:/usr/src/app/158_disambiguator/models:ro'
     ports:
-    - '5002:5002'
+    - '10152:5002'
   frontend:
     build: 158_frontend
     init: true
     ports:
-    - '5000:5000'
+    - '10150:5000'
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     links:

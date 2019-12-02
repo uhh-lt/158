@@ -11,7 +11,7 @@
 
 <nav id="menu" class="pure-menu pure-menu-horizontal">
   <ul class="pure-menu-list">
-    <li class="pure-menu-item"><h1>Watasense</h1></li>
+    <li class="pure-menu-item"><h1>Unsupervised WSD</h1></li>
     <li class="pure-menu-item">{% if '/' == request.path %}Analysis{% else %}<a href="{{ url_for('.index') }}">Analysis</a>{% endif %}</li>
     {% if '/wsd' == request.path %}<li class="pure-menu-item">Results</li>{% endif %}
   </ul>

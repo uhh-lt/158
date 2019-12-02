@@ -3,6 +3,7 @@
 import configparser
 import subprocess
 import tempfile
+import codecs
 
 import MeCab
 import icu
@@ -10,7 +11,6 @@ from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
-
 
 config = configparser.ConfigParser()
 config.read('158.ini')
@@ -47,8 +47,10 @@ def tokenize_sentence(text, exotic_langs):
 
 
 def tokenize_chinese(text):
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(text.encode('utf-8'))
+
+    with tempfile.NamedTemporaryFile(mode="w") as f:
+        f.write(text)
+        f.flush()
 
         with subprocess.Popen(['stanford_segmenter/segment.sh', 'pku', f.name, 'UTF-8', '0'],
                               stdout=subprocess.PIPE) as tokenizer:
@@ -65,6 +67,7 @@ def tokenize_japanese(text):
 def tokenize_vietnamese(text):
     with tempfile.NamedTemporaryFile() as fr, tempfile.NamedTemporaryFile('r') as fw:
         fr.write(text.encode('utf-8'))
+        fr.flush()
 
         subprocess.call(
             ['java', '-jar', 'UETSegmenter/uetsegmenter.jar', '-r', 'seg', '-m', 'UETSegmenter/models/',
@@ -87,6 +90,7 @@ def tokenize_icu(text, language):
         tokens += ' '
         start_pos = obj
     return tokens
+
 
 @method
 def tokenize(context, text):

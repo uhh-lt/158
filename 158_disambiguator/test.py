@@ -2,7 +2,18 @@
 
 from jsonrpcclient import request
 
-tokens = ['I', 'wrote', 'my', 'program', 'in', 'Python', '.']
+language_en = 'en'
 
-result = request('http://localhost:5002/', 'disambiguate', tokens).data.result
-print(result)
+word_en = 'Ruby'
+senses_en = request('http://localhost:5002/', 'senses', language_en, word_en).data.result
+print(senses_en)
+
+tokens_en = ['Ruby', 'Perl']
+result_en = request('http://localhost:5002/', 'disambiguate', language_en, tokens_en).data.result
+print(result_en)
+
+language_ru = 'ru'
+tokens_ru = ['щенок', 'такса']
+
+result_ru = request('http://localhost:5002/', 'disambiguate', language_ru, tokens_ru).data.result
+print(result_ru)

@@ -2,61 +2,102 @@
 
 import configparser
 import sys
-import os
 
-from egvi import WSD
+from egvi_sqlite import WSD
 from jsonrpcserver import dispatch, method
-from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, Response
 
+INVENTORY_TOP = 200
+sqlite_db = "./models/Vectors.db"
+inventory_db = "./models/Inventory.db"
 
 config = configparser.ConfigParser()
 config.read('158.ini')
+language_list = config['disambiguator']['dis_langs'].split(',')
 
-language = os.environ.get('LANGUAGE', 'en')
-
-try:
-    inventory = config.get('models', language.lower())
-except:
-    raise Exception('No language available')
-
-
-wsd = WSD(inventory, language=language, verbose=True)
-print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
+wsd_dict = dict()
+for language in language_list:
+    print('WSD[%s] model start' % language, file=sys.stderr)
+    try:
+        wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
+                                 vectors_db_fpath=sqlite_db,
+                                 language=language,
+                                 verbose=True)
+    except Exception as e:
+        print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
+    else:
+        print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
 
 
 @method
-def disambiguate(context, *tokens):
-    wsd = context['wsd']
-    
+def disambiguate(context, language, *tokens):
+    # Different library versions pass variable in different ways
+    if tokens[0] is list:
+        tokens = tokens[0]
+
     results = list()
 
-    if type(tokens[0]) is list:
-        tokens = tokens[0]
-    
+    if language in language_list:
+        wsd = wsd_dict[language]
+    else:
+        wsd = None
+        print('Error: unknown language: {}'.format(language))
+
     for token in tokens:
         token_sense = list()
-        senses = wsd.disambiguate(tokens, token, 5)
-        for sense in senses:
+
+        if wsd is not None:
+            senses = wsd.disambiguate(tokens, token, 5)
+        else:
+            senses = None
+
+        # Could be no senses at all
+        if senses is None:
             sense_dict = {"token": token,
-                          "word": sense[0].word,
-                          "keyword": sense[0].keyword,
-                          "cluster": sense[0].cluster,
-                          "confidence": sense[1]
-                         }
+                          "word": "UNKNOWN",
+                          "keyword": "UNKNOWN",
+                          "cluster": [],
+                          "confidence": 1.0
+                          }
             token_sense.append(sense_dict)
+        else:
+            for sense in senses:
+                sense_dict = {"token": token,
+                              "word": sense[0].word,
+                              "keyword": sense[0].keyword,
+                              "cluster": sense[0].cluster,
+                              "confidence": sense[1]
+                              }
+                token_sense.append(sense_dict)
         results.append(token_sense)
 
     return results
 
 
+@method
+def senses(context, language, word):
+    # Different library versions pass variable in different ways
+    if word is list:
+        word = word[0]
+
+    if language in language_list:
+        wsd = wsd_dict[language]
+    else:
+        wsd = None
+        print('Error: unknown language: {}'.format(language))
+
+    senses_result = wsd.get_senses(word)
+
+    return senses_result
+
+
 @app.route("/", methods=['GET', 'POST'])
 def index():
     req = request.get_data().decode()
-    response = dispatch(req, context={'config': config, 'wsd': wsd})
+    response = dispatch(req, context={'config': config})
     return Response(str(response), response.http_status, mimetype="application/json")
 
 
