@@ -1,7 +1,7 @@
-*.pkl
-*.npy
-*.gz
-*.tsv
-*.db
+**/*.pkl
+**/*.npy
+**/*.gz
+**/*.tsv
+**/*.db
 
 models/*
