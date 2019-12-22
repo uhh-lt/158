@@ -16,7 +16,7 @@ services:
     - LANGUAGE=en
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
-    - './158_disambiguator/models:/usr/src/app/158_disambiguator/models:ro'
+    - './158_disambiguator/models:/usr/src/app/models:ro'
     ports:
     - '10152:5002'
   frontend:
