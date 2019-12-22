@@ -4,8 +4,4 @@
 *.tsv
 *.db
 
-models/*.db
-models/*/*/*.gz
-models/*/*/*.tsv
-
 models/*
