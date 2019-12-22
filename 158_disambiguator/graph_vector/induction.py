@@ -20,8 +20,6 @@ from pandas import read_csv
 from gensim.models import KeyedVectors
 from chinese_whispers import chinese_whispers, aggregate_clusters
 
-from disambiguator import ensure_word_embeddings, ensure_dir
-
 wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -36,6 +34,18 @@ try:
     wv
 except NameError:
     wv = None
+
+
+def get_embedding_path(language):
+    """ Ensures that the word vectors exist by downloading them if needed. """
+
+    dir_path = os.path.join("models", language)
+    os.makedirs(dir_path, exist_ok=True)
+
+    wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))
+    wv_pkl_fpath = wv_fpath + ".pkl"
+
+    return wv_fpath, wv_pkl_fpath
 
 
 def get_ru_wsi_vocabulary() -> Set:
@@ -344,13 +354,13 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
     log_dir_path = os.path.join(dir_path, "logs")
 
     # Create folder for language
-    ensure_dir(log_dir_path)
+    os.makedirs(log_dir_path, exist_ok=True)
 
     logger_info = create_logger(language=language, path=log_dir_path)
     logger_error = create_logger(language=language, path=log_dir_path, name='error', level=logging.ERROR)
 
     # Get w2v models paths
-    wv_fpath, wv_pkl_fpath = ensure_word_embeddings(language)
+    wv_fpath, wv_pkl_fpath = get_embedding_path(language)
 
     # Get list of words for language
     if eval_vocabulary:

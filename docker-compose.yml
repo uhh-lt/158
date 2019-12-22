@@ -5,8 +5,8 @@ services:
     init: true
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
-    - './158_tokenizer/stanford_segmenter:/usr/src/app/158_tokenizer/stanford_segmenter:ro'
-    - './158_tokenizer/UETSegmenter:/usr/src/app/158_tokenizer/UETSegmenter:ro'
+    - './158_tokenizer/stanford_segmenter:/usr/src/app/stanford_segmenter:ro'
+    - './158_tokenizer/UETSegmenter:/usr/src/app/UETSegmenter:ro'
     ports:
     - '10151:5001'
   disambiguator:
@@ -16,7 +16,7 @@ services:
     - LANGUAGE=en
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
-    - './158_disambiguator/models:/usr/src/app/158_disambiguator/models:ro'
+    - './158_disambiguator/models:/usr/src/app/models:ro'
     ports:
     - '10152:5002'
   frontend:
