@@ -33,7 +33,7 @@ app = Flask(__name__)
 
 
 @method
-def disambiguate(context, language, *tokens):
+def disambiguate(context, language, tokens):
     # Different library versions pass variable in different ways
     if tokens[0] is list:
         tokens = tokens[0]
