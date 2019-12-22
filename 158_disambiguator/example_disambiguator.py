@@ -2,7 +2,7 @@
 
 from jsonrpcclient import request
 
-disambiguator_url = 'http://localhost:5002/'
+disambiguator_url = 'http://localhost:10152/'
 
 language_en = 'en'
 
