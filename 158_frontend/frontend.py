@@ -38,7 +38,7 @@ with open("langs.json") as json_file:
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html', langs_dict=languages_values)
+    return render_template('index.html')
 
 
 @app.route('/wsd/')
@@ -61,6 +61,7 @@ def wsd():
         disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate',
                                                tokenization['language'], tokenization['tokens']).data.result
     except Exception as e:
+        # TODO: add logging
         print(e)
 
     result = []
@@ -71,10 +72,14 @@ def wsd():
     return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
 
 
+@app.route('/word_inventory', methods=['GET'])
+def word_senses():
+    return render_template('word_inventory.html', langs_dict=languages_values)
+
+
 @app.route('/senses', methods=['POST'])
 def senses():
     disambiguator_url = random.choice(disambiguators)
-    senses_list = []
 
     language = request.form["selected_language"]
     word = request.form["word"]
