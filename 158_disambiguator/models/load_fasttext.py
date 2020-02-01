@@ -6,7 +6,7 @@ from clint.textui import progress
 def download_word_embeddings(language):
     """ Ensures that the word vectors exist by downloading them if needed. """
 
-    dir_path = os.path.join("models", language)
+    dir_path = os.path.join("fasttext_models", language)
     os.makedirs(dir_path)
 
     filename = "cc.{}.300.vec.gz".format(language)

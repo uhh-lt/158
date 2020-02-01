@@ -47,7 +47,7 @@ def upload_vectors_sqlite(vectors: pd.DataFrame, database: str, table_name: str)
 
 def main():
 
-    sqlite_db = "./models/Vectors.db"
+    sqlite_db = "Vectors.db"
     lang_list = ['af', 'als', 'am', 'an', 'ar', 'arz', 'as',
                  'ast', 'az', 'azb', 'ba', 'bar', 'bcl', 'be',
                  'bg', 'bh', 'bn', 'bo', 'bpy', 'br', 'bs',
@@ -75,7 +75,7 @@ def main():
     for lang in lang_list:
         print('Start: {}'.format(lang))
         logging.info('Start: {}'.format(lang))
-        wv_fpath = "./models/fasttext_models/{lang}/cc.{lang}.300.vec.gz".format(lang=lang)
+        wv_fpath = "./fasttext_models/{lang}/cc.{lang}.300.vec.gz".format(lang=lang)
         if not os.path.exists(wv_fpath):
             logging.error('No model for {lang}'.format(lang=lang))
             print('No model for {lang}'.format(lang=lang))

@@ -48,7 +48,7 @@ def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, table_name: 
 
 def main():
     
-    sqlite_db = "./models/Inventory.db"
+    sqlite_db = "Inventory.db"
     lang_list = ['af', 'als', 'am', 'an', 'ar', 'arz', 'as',
                  'ast', 'az', 'azb', 'ba', 'bar', 'bcl', 'be',
                  'bg', 'bh', 'bn', 'bo', 'bpy', 'br', 'bs',
@@ -74,7 +74,7 @@ def main():
                  'yo', 'zea', 'zh', 'ko']
     neighbors = 200
 
-    inventory_path = "./models/inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
+    inventory_path = "./inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
     for lang in lang_list:
         logging.info('Start: {}'.format(lang))
         print('Start: {}'.format(lang))
