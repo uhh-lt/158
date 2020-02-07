@@ -392,8 +392,17 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
     global voc_neighbors
     voc_neighbors = get_nns_faiss_batch(voc, batch_size=BATCH_SIZE)
 
+    # Init folder for inventory plots
+    if visualize:
+        plt_path = os.path.join(inventory_path, "plots")
+        os.makedirs(plt_path, exist_ok=True)
+
     # perform word sense induction
     for topn in (50, 100, 200):
+
+        if visualize:
+            plt_topn_path = os.path.join(plt_path, str(topn))
+            os.makedirs(plt_topn_path, exist_ok=True)
 
         if verbose:
             print('{} neighbors'.format(topn))
@@ -413,6 +422,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
                 break
 
             if word in string.punctuation:
+                print("Skipping word '{}', because it is a punctuation\n".format(word))
                 continue
 
             if verbose:
@@ -423,9 +433,8 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
             try:
                 words[word] = wsi(word, neighbors_number=topn)
                 if visualize:
-                    plt_path = os.path.join(inventory_path, "pics")
-                    plt_fpath = inventory_path + ".{}.png".format(word)
-                    draw_ego(words[word]["network"], show_plot, plt_fpath)
+                    plt_topn_path_word = os.path.join(plt_topn_path, "{}.png".format(word))
+                    draw_ego(words[word]["network"], show_plot, plt_topn_path_word)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
                 with codecs.open(output_fpath, "a", "utf-8") as out:
                     for l in lines:
