@@ -7,13 +7,13 @@ def download_word_embeddings(language):
     """ Ensures that the word vectors exist by downloading them if needed. """
 
     dir_path = os.path.join("fasttext_models", language)
-    os.makedirs(dir_path)
+    os.makedirs(dir_path, exist_ok=True)
 
     filename = "cc.{}.300.vec.gz".format(language)
     wv_fpath = os.path.join(dir_path, filename)
     wv_pkl_fpath = wv_fpath + ".pkl"
 
-    if os.makedirs(wv_fpath):
+    if os.path.exists(wv_fpath):
         print('Exists')
     else:
         wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
