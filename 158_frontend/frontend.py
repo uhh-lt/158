@@ -41,12 +41,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/wsd/')
-def wsd_redirect():
-    return redirect(url_for('.index'), code=302)
-
-
-@app.route('/wsd', methods=['POST'])
+@app.route('/wsd/', methods=['POST'])
 def wsd():
     text_input = request.form['text']
 
@@ -77,7 +72,7 @@ def word_senses():
     return render_template('word_inventory.html', langs_dict=languages_values)
 
 
-@app.route('/senses', methods=['POST'])
+@app.route('/senses/', methods=['POST'])
 def senses():
     disambiguator_url = random.choice(disambiguators)
 
