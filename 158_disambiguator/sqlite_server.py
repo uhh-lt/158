@@ -1,10 +1,11 @@
 import sqlite3
 from sqlite3 import Error
 import numpy as np
+from typing import List
 
 
 class SqliteServer(object):
-    def __init__(self, db, table_name):
+    def __init__(self, db, table_name: str):
         """:param db: database name
            :return: Connection object or None"""
         self.table_name = table_name
@@ -43,11 +44,25 @@ class SqliteServer(object):
 class SqliteServerModel(SqliteServer):
     """Create a connection to the SQLite database with word vectors."""
 
-    def __init__(self, db, lang):
+    def __init__(self, db, lang: str):
         table_name = lang + "_"
         super().__init__(db, table_name=table_name)
 
-    def get_word_vector(self, word):
+    def get_tokens_vectors(self, tokens: List[str]):
+        query = 'SELECT * FROM {table} WHERE '.format(table=self.table_name)
+        for index, token in enumerate(tokens):
+            token_clear = token.replace('"', '')
+            query += 'word = "{word}"'.format(word=token_clear)
+            if index + 1 != len(tokens):
+                query += ' OR '
+
+        rows = self.sql_query(query)
+        vectors_dict = {}
+        for row in rows:
+            vectors_dict[row[0]] = np.array(row[1:])
+        return vectors_dict
+
+    def get_word_vector(self, word: str):
         word = word.replace('"', '')
         query = 'SELECT * FROM {table} WHERE word = "{word}"'.format(table=self.table_name, word=word)
         rows = self.sql_query(query)
@@ -58,11 +73,27 @@ class SqliteServerModel(SqliteServer):
 class SqliteServerInventory(SqliteServer):
     """Create a connection to the SQLite database with language inventories."""
 
-    def __init__(self, db, lang):
+    def __init__(self, db, lang: str):
         table_name = lang + "_"
         super().__init__(db, table_name=table_name)
 
-    def get_word_senses(self, word):
+    def get_tokens_senses(self, tokens: List[str], ignore_case: bool):
+        query = 'SELECT * FROM {table} WHERE '.format(table=self.table_name)
+        for index, token in enumerate(tokens):
+            token_clear = token.replace('"', '')
+            query += 'word = "{word}"'.format(word=token_clear)
+            if ignore_case:
+                query += ' OR word = "{word}"'.format(word=token_clear.title())
+                query += ' OR word = "{word}"'.format(word=token_clear.lower())
+                query += ' OR word = "{word}"'.format(word=token_clear.upper())
+
+            if index + 1 != len(tokens):
+                query += ' OR '
+
+        rows = self.sql_query(query)
+        return rows
+
+    def get_word_senses(self, word: str):
         word = word.replace('"', '')
         query = 'SELECT * FROM {table} WHERE word = "{word}"'.format(table=self.table_name, word=word)
         rows = self.sql_query(query)

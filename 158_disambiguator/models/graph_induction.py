@@ -20,6 +20,8 @@ from pandas import read_csv
 from gensim.models import KeyedVectors
 from chinese_whispers import chinese_whispers, aggregate_clusters
 
+from load_fasttext import download_word_embeddings
+
 wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -39,10 +41,15 @@ except NameError:
 def get_embedding_path(language):
     """ Ensures that the word vectors exist by downloading them if needed. """
 
-    dir_path = os.path.join("models", language)
-    os.makedirs(dir_path, exist_ok=True)
-
+    dir_path = os.path.join("fasttext_models", language)
     wv_fpath = os.path.join(dir_path, "cc.{}.300.vec.gz".format(language))
+
+    if os.path.exists(wv_fpath):
+        print('Embedding for {} exists'.format(language))
+    else:
+        print('Embedding for {} does not exist, loading'.format(language))
+        download_word_embeddings(language)
+
     wv_pkl_fpath = wv_fpath + ".pkl"
 
     return wv_fpath, wv_pkl_fpath
@@ -350,8 +357,8 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
     global logger_info, logger_error
 
-    dir_path = os.path.join("models", language)
-    log_dir_path = os.path.join(dir_path, "logs")
+    inventory_path = os.path.join("inventories", language)
+    log_dir_path = os.path.join(inventory_path, "logs")
 
     # Create folder for language
     os.makedirs(log_dir_path, exist_ok=True)
@@ -376,7 +383,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
     # ensure the word vectors are saved in the fast to load gensim format
     if not exists(wv_pkl_fpath):
-        load_globally(wv_fpath, faiss_gpu)  # loads wv
+        wv = load_globally(wv_fpath, faiss_gpu)  # loads wv
         save_to_gensim_format(wv, wv_pkl_fpath)
     else:
         load_globally(wv_pkl_fpath, faiss_gpu)
@@ -385,15 +392,24 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
     global voc_neighbors
     voc_neighbors = get_nns_faiss_batch(voc, batch_size=BATCH_SIZE)
 
+    # Init folder for inventory plots
+    if visualize:
+        plt_path = os.path.join(inventory_path, "plots")
+        os.makedirs(plt_path, exist_ok=True)
+
     # perform word sense induction
     for topn in (50, 100, 200):
+
+        if visualize:
+            plt_topn_path = os.path.join(plt_path, str(topn))
+            os.makedirs(plt_topn_path, exist_ok=True)
 
         if verbose:
             print('{} neighbors'.format(topn))
 
         logger_info.info("{} neighbors".format(topn))
 
-        output_fpath = wv_fpath + ".top{}.inventory.tsv".format(topn)
+        output_fpath = inventory_path + "cc.{}.300.vec.gz.top{}.inventory.tsv".format(language, topn)
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
 
@@ -406,6 +422,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
                 break
 
             if word in string.punctuation:
+                print("Skipping word '{}', because it is a punctuation\n".format(word))
                 continue
 
             if verbose:
@@ -416,8 +433,8 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
             try:
                 words[word] = wsi(word, neighbors_number=topn)
                 if visualize:
-                    plt_fpath = output_fpath + ".{}.png".format(word)
-                    draw_ego(words[word]["network"], show_plot, plt_fpath)
+                    plt_topn_path_word = os.path.join(plt_topn_path, "{}.png".format(word))
+                    draw_ego(words[word]["network"], show_plot, plt_topn_path_word)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
                 with codecs.open(output_fpath, "a", "utf-8") as out:
                     for l in lines:

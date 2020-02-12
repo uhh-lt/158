@@ -38,41 +38,13 @@ def disambiguate(context, language, tokens):
     if tokens[0] is list:
         tokens = tokens[0]
 
-    results = list()
-
     if language in language_list:
         wsd = wsd_dict[language]
     else:
         wsd = None
         print('Error: unknown language: {}'.format(language))
 
-    for token in tokens:
-        token_sense = list()
-
-        if wsd is not None:
-            senses = wsd.disambiguate(tokens, token, 5)
-        else:
-            senses = None
-
-        # Could be no senses at all
-        if senses is None:
-            sense_dict = {"token": token,
-                          "word": "UNKNOWN",
-                          "keyword": "UNKNOWN",
-                          "cluster": [],
-                          "confidence": 1.0
-                          }
-            token_sense.append(sense_dict)
-        else:
-            for sense in senses:
-                sense_dict = {"token": token,
-                              "word": sense[0].word,
-                              "keyword": sense[0].keyword,
-                              "cluster": sense[0].cluster,
-                              "confidence": sense[1]
-                              }
-                token_sense.append(sense_dict)
-        results.append(token_sense)
+    results = wsd.disambiguate_text(tokens)
 
     return results
 

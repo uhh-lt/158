@@ -103,6 +103,9 @@ ENV/
 # mypy
 .mypy_cache/
 
+# plots
+.png
+
 # Model files
 *.npy
 *.gz
