@@ -81,6 +81,9 @@ class WSD(object):
         """
         # get senses of all senses' keywords
         keywords = [sense.keyword for sense in senses]
+        if not keywords:
+            return {}
+
         keywords_vectors_dict = self.wv_vectors_db.get_tokens_vectors(keywords)
 
         # match keyword vector to the sense
@@ -165,7 +168,10 @@ class WSD(object):
         token_senses_vectors_dict = self.get_senses_vectors(context_senses_list)
 
         # retrieve vectors of all context words
-        context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens)
+        if token_senses_vectors_dict:
+            context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens)
+        else:
+            context_vectors_dict = {}
 
         result = []
 
@@ -183,13 +189,19 @@ class WSD(object):
             best_context_words = self.pick_best_context(tokens, context_vectors_dict, token_index,
                                                         token_senses_vectors_list, most_sign_num)
 
-            # average the selected context words
-            context_vector = self.average_context_vectors(tokens, token_index,
-                                                          best_context_words, context_vectors_dict)
+            if best_context_words:
+                # average the selected context words
+                context_vector = self.average_context_vectors(tokens, token_index,
+                                                              best_context_words, context_vectors_dict)
 
-            # pick the sense which is the most similar to the context vector
-            sense_scores = [(sense, float(context_vector.dot(token_senses_vectors_list[sense])))
-                            for sense in token_senses_vectors_list]
+                # pick the sense which is the most similar to the context vector
+                sense_scores = [(sense, float(context_vector.dot(token_senses_vectors_list[sense])))
+                                for sense in token_senses_vectors_list]
+            # if there is no context for word - any sense is possible
+            else:
+                sense_scores = [(sense, 1.0 / len(token_senses_vectors_list))
+                                for sense in token_senses_vectors_list]
+
             senses_sorted = sorted(sense_scores, key=itemgetter(1), reverse=True)
 
             if senses_sorted is None:
