@@ -8,7 +8,6 @@ body {
 
 #content {
   margin: 0 auto;
-  padding: 0;
   max-width: 64em;
   font-family: 'Roboto', 'Helvetica', sans-serif;
   color: #1B1D26;
@@ -20,31 +19,6 @@ body {
 
 .pure-g [class*=pure-u] {
   font-family: inherit;
-}
-
-a, a:hover, a:active, a:visited {
-  color: #425955;
-}
-
-.pure-button-primary {
-  background-color: #425955 !important;
-}
-
-#menu {
-  margin: 1em 0 1em;
-
-  li {
-    margin: 0 .2em;
-  }
-
-  li:first-child {
-    margin-left: 0;
-  }
-
-  h1 {
-    font-size: inherit;
-    font-weight: bold;
-  }
 }
 
 @media screen and (min-width: 64em) {
