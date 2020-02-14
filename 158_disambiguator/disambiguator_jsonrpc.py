@@ -5,7 +5,7 @@ import sys
 
 from egvi_sqlite import WSD
 from jsonrpcserver import dispatch, method
-from werkzeug.wrappers import Request, Response
+from werkzeug.wrappers import Response
 from flask import Flask, request, Response
 
 INVENTORY_TOP = 200
@@ -33,7 +33,7 @@ app = Flask(__name__)
 
 
 @method
-def disambiguate(context, language, tokens):
+def disambiguate(language, tokens):
     # Different library versions pass variable in different ways
     if tokens[0] is list:
         tokens = tokens[0]
@@ -50,7 +50,7 @@ def disambiguate(context, language, tokens):
 
 
 @method
-def senses(context, language, word):
+def senses(language, word):
     # Different library versions pass variable in different ways
     if word is list:
         word = word[0]
