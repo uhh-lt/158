@@ -409,7 +409,9 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
         logger_info.info("{} neighbors".format(topn))
 
-        output_fpath = inventory_path + "cc.{}.300.vec.gz.top{}.inventory.tsv".format(language, topn)
+        inventory_file = "cc.{}.300.vec.gz.top{}.inventory.tsv".format(language, topn)
+        output_fpath = os.path.join(inventory_path, inventory_file)
+        
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
 
