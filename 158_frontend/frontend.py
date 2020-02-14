@@ -28,6 +28,7 @@ disambiguators = [url for url in config['services']['disambiguator'].split('\n')
 print(disambiguators)
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 frontend_assets.init(app)
 
@@ -41,7 +42,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/wsd/')
+@app.route('/uwsd158')
 def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
@@ -93,7 +94,7 @@ def senses():
     if len(senses_list) == 0:
         senses_list = [[word, "UNKNOWN", ["UNKNOWN"]]]
 
-    return render_template('senses.html', word=word, senses=senses_list)
+    return render_template('senses.html', word=word, senses=senses_list, language=language)
 
 
 @app.route('/favicon.ico')

@@ -7,15 +7,20 @@
 
 <body>
 
-<div id="content">
+<div id="footer">
+<footer class="mdl-mini-footer">
+  <div class="mdl-mini-footer__left-section">
+    <div class="mdl-logo">Unsupervised WSD</div>
+    <ul class="mdl-mini-footer__link-list">
+      <li><a href=".{{ url_for('.index') }}">Text Disambiguation</a></li>
+      <li><a href=".{{ url_for('.word_senses') }}">Word Senses</a></li>
+    </ul>
+  </div>
+</footer>
+</div>
 
-<nav id="menu" class="pure-menu pure-menu-horizontal">
-  <ul class="pure-menu-list">
-    <li class="pure-menu-item"><h1>Unsupervised WSD</h1></li>
-    <li class="pure-menu-item"><a href=".{{ url_for('.index') }}">Main Page</a></li>
-    <li class="pure-menu-item"><a href=".{{ url_for('.word_senses') }}">Word Senses</a></li>
-  </ul>
-</nav>
+
+<div id="content">
 
 {% block content %}{% endblock %}
 
@@ -27,6 +32,10 @@
 <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/forms-min.css">
 <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/buttons-min.css">
 <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href="//cdnjs.cloudflare.com/ajax/libs/pure/1.0.0/menus-min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
 
 {% assets "scss_all" %}
   <link rel="stylesheet" property="stylesheet" type="text/css" media="all" href=".{{ ASSET_URL }}">
