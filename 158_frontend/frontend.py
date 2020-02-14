@@ -28,6 +28,7 @@ disambiguators = [url for url in config['services']['disambiguator'].split('\n')
 print(disambiguators)
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 frontend_assets.init(app)
 
