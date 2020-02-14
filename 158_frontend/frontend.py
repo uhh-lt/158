@@ -67,7 +67,7 @@ def wsd():
     return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
 
 
-@app.route('/word_inventory', methods=['GET'])
+@app.route('/word_inventory/', methods=['GET'])
 def word_senses():
     return render_template('word_inventory.html', langs_dict=languages_values)
 
@@ -88,7 +88,7 @@ def senses():
     if len(senses_list) == 0:
         senses_list = [[word, "UNKNOWN", ["UNKNOWN"]]]
 
-    return render_template('senses.html', word=word, senses=senses_list)
+    return render_template('senses.html', word=word, senses=senses_list, language=language)
 
 
 @app.route('/favicon.ico')
