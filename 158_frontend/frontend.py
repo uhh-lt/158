@@ -36,12 +36,12 @@ with open("langs.json") as json_file:
     languages_values = list(languages_dict.items())
 
 
-@app.route('/uwsd158', methods=['GET'])
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
 
-@app.route('/')
+@app.route('/uwsd158')
 def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
