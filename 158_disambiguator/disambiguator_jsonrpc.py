@@ -5,6 +5,7 @@ import sys
 
 from egvi_sqlite import WSD
 from flask import Flask, request, jsonify
+from flasgger import Swagger
 
 INVENTORY_TOP = 200
 sqlite_db = "./models/Vectors.db"
@@ -28,6 +29,7 @@ for language in language_list:
         print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
+Swagger(app)
 
 
 def sense_to_dict(sense):
@@ -38,6 +40,56 @@ def sense_to_dict(sense):
 
 @app.route("/disambiguate", methods=['POST'])
 def disambiguate():
+    """
+        Disambiguates whole context
+        Call this api passing a language name and a list of tokens
+        ---
+        tags:
+          - 158 disambiguator
+        parameters:
+          - name: language
+            in: body
+            type: string
+            required: true
+            description: The language name
+          - name: tokens
+            in: body
+            type: array
+            items:
+              type: string
+            required: true
+            description: list of context tokens to disambiguate
+        responses:
+          500:
+            description: Bad request
+          200:
+            description: A list of words, each is a list of possible senses.
+            schema:
+              type: array
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                      cluster:
+                        type: array
+                        description: Tokens in the sense cluster.
+                        items:
+                          type: string
+                      confidence:
+                        type: number
+                        description: Confidence of the sense.
+                      keyword:
+                        type: string
+                        description: The centroid of the sense.
+                      token:
+                        type: string
+                        description: Token from the request.
+                      word:
+                        type: string
+                        description: Identified token from the request.
+        """
+
     req_json = request.json
     language = req_json['language']
     tokens = req_json['tokens']
@@ -55,6 +107,44 @@ def disambiguate():
 
 @app.route("/senses", methods=['POST'])
 def senses():
+    """
+        Returns all known senses for token
+        Call this api passing a language name and a token
+        ---
+        tags:
+          - 158 disambiguator
+        parameters:
+          - name: language
+            in: body
+            type: string
+            required: true
+            description: The language name
+          - name: word
+            in: body
+            type: string
+            description: token to get senses
+        responses:
+          500:
+            description: Bad Request
+          200:
+            description: list of known word senses
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  cluster:
+                    type: array
+                    description: Tokens in the sense cluster.
+                    items:
+                      type: string
+                  keyword:
+                    type: string
+                    description: The centroid of the sense.
+                  word:
+                    type: string
+                    description: Token from the request.
+        """
     req_json = request.json
     language = req_json['language']
     word = req_json['word']
