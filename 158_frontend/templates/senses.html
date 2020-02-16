@@ -12,8 +12,8 @@
           <span class="sense">
             {{ sense['token'] | e }}
             <span class="sense-details">
-              <b>Keyword</b>: {{ sense[1] | e }}<br>
-              <b>Cluster:</b> {{ ', '.join(sense[2]) | e }}<br>
+              <b>Keyword</b>: {{ sense['keyword'] | e }}<br>
+              <b>Cluster:</b> {{ ', '.join(sense['cluster']) | e }}<br>
             </span>
           </span>
           <br>

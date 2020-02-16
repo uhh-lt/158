@@ -4,9 +4,7 @@ import configparser
 import sys
 
 from egvi_sqlite import WSD
-from jsonrpcserver import dispatch, method
-from werkzeug.wrappers import Response
-from flask import Flask, request, Response
+from flask import Flask, request, jsonify
 
 INVENTORY_TOP = 200
 sqlite_db = "./models/Vectors.db"
@@ -32,45 +30,49 @@ for language in language_list:
 app = Flask(__name__)
 
 
-@method
-def disambiguate(language, tokens):
-    # Different library versions pass variable in different ways
-    if tokens[0] is list:
-        tokens = tokens[0]
+def sense_to_dict(sense):
+    return {"word": sense.word,
+            "keyword": sense.keyword,
+            "cluster": sense.cluster}
+
+
+@app.route("/disambiguate", methods=['POST'])
+def disambiguate():
+    req_json = request.json
+    language = req_json['language']
+    tokens = req_json['tokens']
 
     if language in language_list:
         wsd = wsd_dict[language]
+        senses_list = wsd.disambiguate_text(tokens)
     else:
-        wsd = None
+        senses_list = None
         print('Error: unknown language: {}'.format(language))
 
-    results = wsd.disambiguate_text(tokens)
+    results_json = jsonify(senses_list)
+    return results_json
 
-    return results
 
-
-@method
-def senses(language, word):
-    # Different library versions pass variable in different ways
-    if word is list:
-        word = word[0]
+@app.route("/senses", methods=['POST'])
+def senses():
+    req_json = request.json
+    language = req_json['language']
+    word = req_json['word']
 
     if language in language_list:
         wsd = wsd_dict[language]
+        word_senses = wsd.get_senses(word)
     else:
-        wsd = None
+        word_senses = None
         print('Error: unknown language: {}'.format(language))
 
-    senses_result = wsd.get_senses(word)
+    results = []
+    for sense in word_senses:
+        results_dict = sense_to_dict(sense)
+        results.append(results_dict)
 
-    return senses_result
-
-
-@app.route("/", methods=['GET', 'POST'])
-def index():
-    req = request.get_data().decode()
-    response = dispatch(req, context={'config': config})
-    return Response(str(response), response.http_status, mimetype="application/json")
+    results_json = jsonify(results)
+    return results_json
 
 
 if __name__ == '__main__':

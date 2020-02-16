@@ -3,6 +3,8 @@
 import configparser
 import random
 import json
+import requests
+import os
 
 import jsonrpcclient
 from flask import Flask, render_template, send_from_directory, redirect, url_for, request, jsonify
@@ -26,6 +28,8 @@ print(tokenizers)
 
 disambiguators = [url for url in config['services']['disambiguator'].split('\n') if url]
 print(disambiguators)
+
+json_headers = {'Content-type': 'application/json'}
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -52,15 +56,20 @@ def wsd():
     text_input = request.form['text']
 
     tokenizer_url = random.choice(tokenizers)
-    disambiguator_url = random.choice(disambiguators)
+    disambiguator_url = os.path.join(random.choice(disambiguators), "disambiguate")
 
     tokenization = []
     disambiguation = []
 
     try:
         tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', text_input).data.result
-        disambiguation = jsonrpcclient.request(disambiguator_url, 'disambiguate',
-                                               tokenization['language'], tokenization['tokens']).data.result
+
+        data = {"language": tokenization['language'],
+                "tokens": tokenization['tokens']}
+
+        disambiguation_req = requests.post(disambiguator_url, data=json.dumps(data), headers=json_headers)
+        disambiguation = disambiguation_req.json()
+
     except Exception as e:
         # TODO: add logging
         print(e)
@@ -80,13 +89,17 @@ def word_senses():
 
 @app.route('/senses', methods=['POST'])
 def senses():
-    disambiguator_url = random.choice(disambiguators)
+    disambiguator_url = os.path.join(random.choice(disambiguators), "senses")
 
     language = request.form["selected_language"]
     word = request.form["word"]
 
+    data = {"language": language,
+            "word": word}
+
     try:
-        senses_list = jsonrpcclient.request(disambiguator_url, 'senses', language, word).data.result
+        answer = requests.post(disambiguator_url, data=json.dumps(data), headers=json_headers)
+        senses_list = answer.json()
     except Exception as e:
         print(e)
         senses_list = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
