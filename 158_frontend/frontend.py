@@ -62,12 +62,16 @@ def wsd():
     disambiguation = []
 
     try:
-        tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', text_input).data.result
+        #tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', text_input).data.result
 
-        data = {"language": tokenization['language'],
-                "tokens": tokenization['tokens']}
+        text_data = {"text": text_input}
+        tokenization_req = requests.post(tokenizer_url, data=json.dumps(text_data), headers=json_headers)
+        tokenization = tokenization_req.json()
 
-        disambiguation_req = requests.post(disambiguator_url, data=json.dumps(data), headers=json_headers)
+        tokenized_data = {"language": tokenization['language'],
+                          "tokens": tokenization['tokens']}
+
+        disambiguation_req = requests.post(disambiguator_url, data=json.dumps(tokenized_data), headers=json_headers)
         disambiguation = disambiguation_req.json()
 
     except Exception as e:

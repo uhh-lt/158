@@ -10,7 +10,7 @@ import icu
 from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
-from flask import Flask, request, Response
+from flask import Flask, request, jsonify
 
 config = configparser.ConfigParser()
 config.read('158.ini')
@@ -92,16 +92,14 @@ def tokenize_icu(text, language):
     return tokens
 
 
-@method
-def tokenize(context, text):
-    return tokenize_sentence(text.strip(), icu_langs)
+@app.route("/", methods=['POST'])
+def tokenize():
+    req_json = request.json
+    text = req_json['text']
+    result = tokenize_sentence(text.strip(), icu_langs)
 
-
-@app.route("/", methods=['GET', 'POST'])
-def index():
-    req = request.get_data().decode()
-    response = dispatch(req, context={'config': config})
-    return Response(str(response), response.http_status, mimetype="application/json")
+    results_json = jsonify(result)
+    return results_json
 
 
 if __name__ == '__main__':
