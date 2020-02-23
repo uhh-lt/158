@@ -7,3 +7,4 @@ gensim
 nltk
 pandas==0.24.2
 Flask
+flasgger
