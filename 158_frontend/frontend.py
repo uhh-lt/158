@@ -6,7 +6,6 @@ import json
 import requests
 import os
 
-import jsonrpcclient
 from flask import Flask, render_template, send_from_directory, redirect, url_for, request, jsonify
 
 import frontend_assets
@@ -62,8 +61,6 @@ def wsd():
     disambiguation = []
 
     try:
-        #tokenization = jsonrpcclient.request(tokenizer_url, 'tokenize', text_input).data.result
-
         text_data = {"text": text_input}
         tokenization_req = requests.post(tokenizer_url, data=json.dumps(text_data), headers=json_headers)
         tokenization = tokenization_req.json()
