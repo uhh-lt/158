@@ -4,9 +4,8 @@ import configparser
 import sys
 
 from egvi_sqlite import WSD
-from flask import Flask, request, jsonify, Blueprint, url_for
+from flask import Flask, request, jsonify
 from flasgger import Swagger
-from flask_restful import Api
 
 INVENTORY_TOP = 200
 sqlite_db = "./models/Vectors.db"
@@ -49,7 +48,6 @@ swagger_config = {
 }
 
 swagger = Swagger(app, config=swagger_config)
-api = Api(app)
 
 
 def sense_to_dict(sense):
