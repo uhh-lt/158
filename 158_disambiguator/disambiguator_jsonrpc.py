@@ -4,8 +4,9 @@ import configparser
 import sys
 
 from egvi_sqlite import WSD
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Blueprint, url_for
 from flasgger import Swagger
+from flask_restful import Api
 
 INVENTORY_TOP = 200
 sqlite_db = "./models/Vectors.db"
@@ -29,7 +30,26 @@ for language in language_list:
         print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
 app = Flask(__name__)
-Swagger(app)
+
+swagger_config = {
+    "headers": [
+    ],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,  # all in
+            "model_filter": lambda tag: True,  # all in
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    # "static_folder": "static",  # must be set by user
+    "swagger_ui": True,
+    "specs_route": "/"
+}
+
+swagger = Swagger(app, config=swagger_config)
+api = Api(app)
 
 
 def sense_to_dict(sense):
