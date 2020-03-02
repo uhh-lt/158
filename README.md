@@ -2,6 +2,8 @@
 
 This repository will contain all code for a demo of word sense induction and disambiguation for 158 languages based on the pretrained fastText word embeddings. Please commit all the code related to this project here, including small datasets up to a few megabytes.
 
+The **inventories** for all languages are available for download here: [http://ltdata1.informatik.uni-hamburg.de/158/](http://ltdata1.informatik.uni-hamburg.de/158/).
+
 ## Running
 
 You need Docker and Docker Compose to run the microservices. After cloning the repository, run `docker-compose build` to build the container images.
