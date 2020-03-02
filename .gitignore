@@ -115,3 +115,7 @@ ENV/
 
 # Jupyter
 *.ipynb
+
+# Databases
+*.db
+158_disambiguator/models/inventories/

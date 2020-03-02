@@ -46,4 +46,4 @@ COPY . .
 
 USER nobody
 
-CMD ["python3", "tokenizer_jsonrpc.py"]
+CMD ["python3", "tokenizer_json.py"]

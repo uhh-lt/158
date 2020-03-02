@@ -1,7 +1,5 @@
 PyICU
 mecab-python3==0.996.1
-jsonrpcserver>=4,<5
-jsonrpcclient[requests]
 werkzeug
 uwsgi
 Flask

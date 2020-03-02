@@ -12,13 +12,13 @@ In case you have [SELinux enabled](https://stopdisablingselinux.com/), run the f
 
 ### Tokenization Service
 
-The entry point is `158_tokenizer/tokenizer_jsonrpc.py`. Running `docker-compose up tokenizer` starts the tokenization service on the port `5001`. The service exposes the following JSON-RPC API:
+The entry point is `158_tokenizer/tokenizer_json.py`. Running `docker-compose up tokenizer` starts the tokenization service on the port `5001`. The service exposes the following JSON-RPC API:
 
 * `tokenize(text) # => {'language': 'language', tokens: ['Token', '...']}`
 
 ### Disambiguation Service
 
-The entry point is `158_disambiguator/disambiguator_jsonrpc.py`. Running `docker-compose up disambiguator` starts the tokenization service on the port `5002`. The service exposes the following JSON-RPC API:
+The entry point is `158_disambiguator/disambiguator_server.py`. Running `docker-compose up disambiguator` starts the tokenization service on the port `5002`. The service exposes the following JSON-RPC API:
 
 * `disambiguate(language, tokens) # => ?`
 

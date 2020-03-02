@@ -12,4 +12,4 @@ COPY . .
 
 USER nobody
 
-CMD ["python3", "disambiguator_jsonrpc.py"]
+CMD ["python3", "disambiguator_server.py"]

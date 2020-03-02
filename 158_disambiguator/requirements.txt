@@ -1,5 +1,3 @@
-jsonrpcserver==4.0.3
-jsonrpcclient[requests]
 werkzeug
 uwsgi
 clint
