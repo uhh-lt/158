@@ -48,13 +48,34 @@ class SqliteServerModel(SqliteServer):
         table_name = lang + "_"
         super().__init__(db, table_name=table_name)
 
+    @staticmethod
+    def _chunks_(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
     def get_tokens_vectors(self, tokens: List[str]):
+        # Sqlite won't accept such long query
+        # Split tokens to batches
+        if len(tokens) > 20:
+            tokens_batches = list(SqliteServerModel._chunks_(tokens, 20))
+            result_dict = {}
+            for tokens_batch in tokens_batches:
+                vectors_batch = self._get_tokens_vectors_batch_(tokens_batch)
+                result_dict.update(vectors_batch)
+        else:
+            result_dict = self._get_tokens_vectors_batch_(tokens)
+
+        return result_dict
+
+    def _get_tokens_vectors_batch_(self, tokens: List[str]):
         query = 'SELECT * FROM {table} WHERE '.format(table=self.table_name)
         for index, token in enumerate(tokens):
-            token_clear = token.replace('"', '')
-            query += 'word = "{word}"'.format(word=token_clear)
-            if index + 1 != len(tokens):
-                query += ' OR '
+            if token is not None:
+                token_clear = token.replace('"', '')
+                query += 'word = "{word}"'.format(word=token_clear)
+                if index + 1 != len(tokens):
+                    query += ' OR '
 
         rows = self.sql_query(query)
         vectors_dict = {}

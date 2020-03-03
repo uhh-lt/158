@@ -127,14 +127,14 @@ class WSD(object):
     def average_context_vectors(self, context_tokens: List[str], token_index: int,
                                 best_context_words, context_vectors_dict):
         best_context_vectors = []
-        if self._verbose:
-            print("Best context words for '{}' in sentence : '{}' are:".format(context_tokens[token_index],
-                                                                               " ".join(context_tokens)))
+        # if self._verbose:
+        # print("Best context words for '{}' in sentence : '{}' are:".format(context_tokens[token_index],
+        # " ".join(context_tokens)))
 
         for index, (context_word, _) in enumerate(best_context_words):
             best_context_vectors.append(context_vectors_dict[context_word])
-            if self._verbose:
-                print("-\t{}\t".format(index + 1), context_word)
+            # if self._verbose:
+            # print("-\t{}\t".format(index + 1), context_word)
 
         # Could be no context vectors
         if len(best_context_vectors) == 0:
@@ -218,7 +218,7 @@ class WSD(object):
         return result
 
     def disambiguate_word(self, tokens: List[str], target_word: str,
-                                ignore_case=IGNORE_CASE, most_sign_num=MOST_SIGNIFICANT_NUM):
+                          ignore_case=IGNORE_CASE, most_sign_num=MOST_SIGNIFICANT_NUM):
         """
         Disambiguate single token in context.
         :param tokens: list of tokens.

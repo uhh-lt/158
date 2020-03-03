@@ -108,16 +108,25 @@ def disambiguate():
                         description: Identified token from the request.
         """
 
-    req_json = request.json
+    if request.is_json:
+        req_json = request.json
+    else:
+        raise Exception("Request is not json")
+
     language = req_json['language']
     tokens = req_json['tokens']
+
+    print("Language: {lang}\nTokens: {tokens}".format(lang=language, tokens=tokens))
 
     if language in language_list:
         wsd = wsd_dict[language]
         senses_list = wsd.disambiguate_text(tokens)
     else:
-        senses_list = None
-        print('Error: unknown language: {}'.format(language))
+        raise Exception("Unknown language: {}".format(language))
+
+    print("Results \nLang: {lang}\nTokens: {tokens}\n--------------\n{senses}".format(lang=language,
+                                                                                      tokens=tokens,
+                                                                                      senses=senses_list))
 
     results_json = jsonify(senses_list)
     return results_json
@@ -163,7 +172,11 @@ def senses():
                     type: string
                     description: Token from the request.
         """
-    req_json = request.json
+    if request.is_json:
+        req_json = request.json
+    else:
+        raise Exception("Request is not json")
+
     language = req_json['language']
     word = req_json['word']
 
@@ -171,8 +184,7 @@ def senses():
         wsd = wsd_dict[language]
         word_senses = wsd.get_senses(word)
     else:
-        word_senses = None
-        print('Error: unknown language: {}'.format(language))
+        raise Exception("Unknown language: {}".format(language))
 
     results = []
     for sense in word_senses:
