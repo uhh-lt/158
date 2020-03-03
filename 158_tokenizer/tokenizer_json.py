@@ -7,7 +7,6 @@ import codecs
 
 import MeCab
 import icu
-from jsonrpcserver import dispatch, method
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from flask import Flask, request, jsonify
