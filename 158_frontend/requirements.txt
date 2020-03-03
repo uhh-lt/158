@@ -2,3 +2,4 @@ Flask
 Flask-Assets
 pyScss
 uwsgi
+requests
