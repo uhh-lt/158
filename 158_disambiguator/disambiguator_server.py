@@ -2,27 +2,46 @@
 
 import configparser
 import sys
+import os
 
-from egvi_sqlite import WSD
 from flask import Flask, request, jsonify
 from flasgger import Swagger
 
 INVENTORY_TOP = 200
-sqlite_db = "./models/Vectors.db"
-inventory_db = "./models/Inventory.db"
+EGVI_TYPE = "gensim" # gensim or sql
+
+if EGVI_TYPE == 'sql':
+    from egvi_sqlite import WSD
+    sqlite_db = "./models/Vectors.db"
+    inventory_db = "./models/Inventory.db"
+else:
+    from egvi import WSD
 
 config = configparser.ConfigParser()
 config.read('158.ini')
 language_list = config['disambiguator']['dis_langs'].split(',')
+language_list = ['en']
 
 wsd_dict = dict()
 for language in language_list:
     print('WSD[%s] model start' % language, file=sys.stderr)
     try:
-        wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
-                                 vectors_db_fpath=sqlite_db,
-                                 language=language,
-                                 verbose=True)
+        if EGVI_TYPE == 'sql':
+            wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
+                                     vectors_db_fpath=sqlite_db,
+                                     language=language,
+                                     verbose=True)
+        else:
+            dir_path = os.path.join("models", "inventories", language)
+            inventory_file = "cc.{lang}.300.vec.gz.top{top}.inventory.tsv".format(lang=language, top=INVENTORY_TOP)
+            inventory_fpath = os.path.join(dir_path, inventory_file)
+
+            wsd_dict[language] = WSD(inventory_fpath=inventory_fpath,
+                                     language=language,
+                                     verbose=False,
+                                     skip_unknown_words=True,
+                                     dictionary=100000)
+
     except Exception as e:
         print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
     else:

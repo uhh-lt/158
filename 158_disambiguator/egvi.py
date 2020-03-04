@@ -30,7 +30,7 @@ class Sense(SenseBase):  # this is needed as list is an unhashable type
 def ensure_word_embeddings(language):
     """ Ensures that the word vectors exist or raise Exception. """
 
-    dir_path = os.path.join("models", language)
+    dir_path = os.path.join("models", "fasttext_models", language)
     filename = "cc.{}.300.vec.gz".format(language)
     wv_fpath = os.path.join(dir_path, filename)
     wv_pkl_fpath = wv_fpath + ".pkl"
@@ -95,22 +95,28 @@ class WSD(object):
         else:
             return self._unknown, 1.0
 
-    def disambiguate(self, context, target_word, most_significant_num=MOST_SIGNIFICANT_NUM, ignore_case=IGNORE_CASE):
-        """ Perform word sense disambiguation: find the correct sense of the target word inside
-        the provided context.
-        :param context context of the target_word that allows to disambigute its meaning, represented as a string
-        :param target_word an ambigous word that need to be disambiguated
-        :return a list of tuples (sense, confidence) """
+    def format_result(self, token: str, sense: Sense):
+        sense_dict = {"token": token,
+                      "word": sense[0].word,
+                      "keyword": sense[0].keyword,
+                      "cluster": sense[0].cluster,
+                      "confidence": sense[1]
+                      }
+        return sense_dict
 
-        if isinstance(context, str):
-            try:
-                tokens = word_tokenize(context)  # try to use nltk tokenizer
-            except LookupError:
-                tokens = context.split(" ")  # do the simple tokenization if not installed
-        else:
-            tokens = context
+    def disambiguate_text(self, tokens):
 
-        return self.disambiguate_tokenized(tokens, target_word, most_significant_num, ignore_case)
+        tokens_senses = []
+        for token in tokens:
+            token_senses = self.disambiguate_tokenized(tokens, token)
+            if token_senses is None:
+                token_senses = [self._unknown]
+
+            token_senses_dict = [self.format_result(token, sense) for sense in token_senses]
+            tokens_senses.append(token_senses_dict)
+
+        return tokens_senses
+
 
     def disambiguate_tokenized(self, tokens, target_word, most_significant_num=MOST_SIGNIFICANT_NUM,
                                ignore_case=IGNORE_CASE):
