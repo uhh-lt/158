@@ -169,15 +169,9 @@ class WSD(object):
 
         # average the selected context words
         best_context_vectors = []
-        if self._verbose:
-            print("Best context words for '{}' in sentence : '{}' are:".format(target_word, " ".join(tokens)))
 
-        i = 1
-        for context_word, _ in best_context_words:
+        for index, (context_word, _) in enumerate(best_context_words):
             best_context_vectors.append(context_vectors[context_word])
-            if self._verbose:
-                print("-\t{}\t".format(i), context_word)
-            i += 1
 
         # Could be no context vectors
         if len(best_context_vectors) == 0:

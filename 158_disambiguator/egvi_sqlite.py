@@ -124,17 +124,11 @@ class WSD(object):
         best_context_words = context_word_scores[: most_significant_num]
         return best_context_words
 
-    def average_context_vectors(self, context_tokens: List[str], token_index: int,
-                                best_context_words, context_vectors_dict):
+    def average_context_vectors(self, best_context_words, context_vectors_dict):
         best_context_vectors = []
-        # if self._verbose:
-        # print("Best context words for '{}' in sentence : '{}' are:".format(context_tokens[token_index],
-        # " ".join(context_tokens)))
 
         for index, (context_word, _) in enumerate(best_context_words):
             best_context_vectors.append(context_vectors_dict[context_word])
-            # if self._verbose:
-            # print("-\t{}\t".format(index + 1), context_word)
 
         # Could be no context vectors
         if len(best_context_vectors) == 0:
@@ -191,8 +185,7 @@ class WSD(object):
 
             if best_context_words:
                 # average the selected context words
-                context_vector = self.average_context_vectors(tokens, token_index,
-                                                              best_context_words, context_vectors_dict)
+                context_vector = self.average_context_vectors(best_context_words, context_vectors_dict)
 
                 # pick the sense which is the most similar to the context vector
                 sense_scores = [(sense, float(context_vector.dot(token_senses_vectors_list[sense])))
@@ -255,8 +248,7 @@ class WSD(object):
                                                     token_senses_vectors_dict, most_sign_num)
 
         # average the selected context words
-        context_vector = self.average_context_vectors(tokens, target_id,
-                                                      best_context_words, context_vectors_dict)
+        context_vector = self.average_context_vectors(best_context_words, context_vectors_dict)
 
         # pick the sense which is the most similar to the context vector
         sense_scores = [(sense, float(context_vector.dot(token_senses_vectors_dict[sense])))
@@ -313,8 +305,7 @@ class WSD(object):
                                                     token_senses_vectors_dict, most_sign_num)
 
         # average the selected context words
-        context_vector = self.average_context_vectors(tokens, target_id,
-                                                      best_context_words, context_vectors_dict)
+        context_vector = self.average_context_vectors(best_context_words, context_vectors_dict)
 
         # pick the sense which is the most similar to the context vector
         sense_scores = [(sense, float(context_vector.dot(token_senses_vectors_dict[sense])))
