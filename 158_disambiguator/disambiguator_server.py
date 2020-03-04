@@ -20,6 +20,7 @@ else:
 config = configparser.ConfigParser()
 config.read('158.ini')
 language_list = config['disambiguator']['dis_langs'].split(',')
+language_list = ['en']
 
 wsd_dict = dict()
 for language in language_list:

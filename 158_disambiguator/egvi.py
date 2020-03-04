@@ -96,6 +96,9 @@ class WSD(object):
             return self._unknown, 1.0
 
     def format_result(self, token: str, sense: Sense):
+        if type(sense) == str:
+            sense = self._unknown
+
         sense_dict = {"token": token,
                       "word": sense[0].word,
                       "keyword": sense[0].keyword,
@@ -110,7 +113,7 @@ class WSD(object):
         for token in tokens:
             token_senses = self.disambiguate_tokenized(tokens, token)
             if token_senses is None:
-                token_senses = [self._unknown]
+                token_senses = [(self._unknown, 1.0)]
 
             token_senses_dict = [self.format_result(token, sense) for sense in token_senses]
             tokens_senses.append(token_senses_dict)
@@ -181,7 +184,7 @@ class WSD(object):
 
         # Could be no context vectors
         if len(best_context_vectors) == 0:
-            return None
+            return [(self._unknown, 1.0)]
 
         context_vector = mean(best_context_vectors, axis=0)
 
