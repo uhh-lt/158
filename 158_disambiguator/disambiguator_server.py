@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify
 from flasgger import Swagger
 
 INVENTORY_TOP = 200
-EGVI_TYPE = "gensim" # gensim or sql
+EGVI_TYPE = "gensim"  # gensim or sql
 
 if EGVI_TYPE == 'sql':
     from egvi_sqlite import WSD
@@ -20,7 +20,6 @@ else:
 config = configparser.ConfigParser()
 config.read('158.ini')
 language_list = config['disambiguator']['dis_langs'].split(',')
-language_list = ['en']
 
 wsd_dict = dict()
 for language in language_list:
@@ -197,7 +196,7 @@ def senses():
         raise Exception("Request is not json")
 
     language = req_json['language']
-    word = req_json['word']
+    word = req_json['word'].strip()
 
     if language in language_list:
         wsd = wsd_dict[language]
