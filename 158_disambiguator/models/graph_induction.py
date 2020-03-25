@@ -285,18 +285,31 @@ def wsi(ego, neighbors_number: int) -> Dict:
     return {"network": ego_network, "nodes": nodes}
 
 
-def draw_ego(G, show: bool = False, save_fpath: str = ""):
-    colors = [1. / G.node[node]['label'] for node in G.nodes()]
-    sizes = [300. * G.node[node]['size'] for node in G.nodes()]
+def draw_ego(G, show=False, save_fpath=""):
+    label2id = {}
+    colors = []
+    sizes = []
+    for node in G.nodes():
+        label = G.node[node]['label']
+        if label not in label2id:
+            label2id[label] = len(label2id) + 1
+        label_id = label2id[label]
+        colors.append(1. / label_id)
+        sizes.append(1500. * G.node[node]['size'])
 
     plt.clf()
     fig = plt.gcf()
     fig.set_size_inches(20, 20)
 
     nx.draw_networkx(G, cmap=plt.get_cmap('gist_rainbow'),
+                     pos=nx.spring_layout(G, k=0.75),
                      node_color=colors,
                      font_color='black',
-                     node_size=sizes)
+                     font_size=16,
+                     font_weight='bold',
+                     alpha=0.75,
+                     node_size=sizes,
+                     edge_color='gray')
 
     if show:
         plt.show()
@@ -354,7 +367,6 @@ def create_logger(language: str, path: str, name: str = 'info', level=logging.IN
 
 def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
         show_plot: bool = False, faiss_gpu: bool = True):
-
     global logger_info, logger_error
 
     inventory_path = os.path.join("inventories", language)
@@ -411,7 +423,7 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
         inventory_file = "cc.{}.300.vec.gz.top{}.inventory.tsv".format(language, topn)
         output_fpath = os.path.join(inventory_path, inventory_file)
-        
+
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
 
@@ -435,12 +447,12 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
             try:
                 words[word] = wsi(word, neighbors_number=topn)
                 if visualize:
-                    plt_topn_path_word = os.path.join(plt_topn_path, "{}.png".format(word))
+                    plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
                     draw_ego(words[word]["network"], show_plot, plt_topn_path_word)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
                 with codecs.open(output_fpath, "a", "utf-8") as out:
-                    for l in lines:
-                        out.write(l)
+                    for line in lines:
+                        out.write(line)
 
             except KeyboardInterrupt:
                 break
