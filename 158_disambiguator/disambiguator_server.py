@@ -7,40 +7,45 @@ import os
 from flask import Flask, request, jsonify
 from flasgger import Swagger
 
-INVENTORY_TOP = 200
-EGVI_TYPE = "gensim"  # gensim or sql
+from egvi_sqlite import WSD as WSDSQL
+from egvi import WSD as WSDGensim
 
-if EGVI_TYPE == 'sql':
-    from egvi_sqlite import WSD
-    sqlite_db = "./models/Vectors.db"
-    inventory_db = "./models/Inventory.db"
-else:
-    from egvi import WSD
+INVENTORY_TOP = 200
+
+sqlite_db = "./models/Vectors.db"
+inventory_db = "./models/Inventory.db"
 
 config = configparser.ConfigParser()
 config.read('158.ini')
-language_list = config['disambiguator']['dis_langs'].split(',')
+language_list_sql = config['disambiguator']['sql_langs'].split(',')
+language_list_gensim = config['disambiguator']['top_langs'].split(',')
 
 wsd_dict = dict()
-for language in language_list:
+print("Start with top languages")
+for language in language_list_gensim:
+    print('WSD[%s] model start' % language, file=sys.stderr)
+    dir_path = os.path.join("models", "inventories", language)
+    inventory_file = "cc.{lang}.300.vec.gz.top{top}.inventory.tsv".format(lang=language, top=INVENTORY_TOP)
+    inventory_fpath = os.path.join(dir_path, inventory_file)
+    try:
+        wsd_dict[language] = WSDGensim(inventory_fpath=inventory_fpath,
+                                       language=language,
+                                       verbose=False,
+                                       skip_unknown_words=True,
+                                       dictionary=100000)
+    except Exception as e:
+        print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
+    else:
+        print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
+
+print("Non top languages")
+for language in language_list_sql:
     print('WSD[%s] model start' % language, file=sys.stderr)
     try:
-        if EGVI_TYPE == 'sql':
-            wsd_dict[language] = WSD(inventories_db_fpath=inventory_db,
-                                     vectors_db_fpath=sqlite_db,
-                                     language=language,
-                                     verbose=True)
-        else:
-            dir_path = os.path.join("models", "inventories", language)
-            inventory_file = "cc.{lang}.300.vec.gz.top{top}.inventory.tsv".format(lang=language, top=INVENTORY_TOP)
-            inventory_fpath = os.path.join(dir_path, inventory_file)
-
-            wsd_dict[language] = WSD(inventory_fpath=inventory_fpath,
-                                     language=language,
-                                     verbose=False,
-                                     skip_unknown_words=True,
-                                     dictionary=100000)
-
+        wsd_dict[language] = WSDSQL(inventories_db_fpath=inventory_db,
+                                    vectors_db_fpath=sqlite_db,
+                                    language=language,
+                                    verbose=True)
     except Exception as e:
         print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
     else:
@@ -48,24 +53,7 @@ for language in language_list:
 
 app = Flask(__name__)
 
-swagger_config = {
-    "headers": [
-    ],
-    "specs": [
-        {
-            "endpoint": 'apispec_1',
-            "route": '/apispec_1.json',
-            "rule_filter": lambda rule: True,  # all in
-            "model_filter": lambda tag: True,  # all in
-        }
-    ],
-    "static_url_path": "/flasgger_static",
-    # "static_folder": "static",  # must be set by user
-    "swagger_ui": True,
-    "specs_route": "/"
-}
-
-swagger = Swagger(app, config=swagger_config)
+swagger = Swagger(app)
 
 
 def sense_to_dict(sense):
@@ -131,18 +119,18 @@ def disambiguate():
     else:
         raise Exception("Request is not json")
 
-    language = req_json['language']
+    req_language = req_json['language']
     tokens = req_json['tokens']
 
-    print("Language: {lang}\nTokens: {tokens}".format(lang=language, tokens=tokens))
+    print("Language: {lang}\nTokens: {tokens}".format(lang=req_language, tokens=tokens))
 
-    if language in language_list:
-        wsd = wsd_dict[language]
+    if req_language in language_list_gensim or req_language in language_list_sql:
+        wsd = wsd_dict[req_language]
         senses_list = wsd.disambiguate_text(tokens)
     else:
-        raise Exception("Unknown language: {}".format(language))
+        raise Exception("Unknown language: {}".format(req_language))
 
-    print("Results \nLang: {lang}\nTokens: {tokens}\n--------------\n{senses}".format(lang=language,
+    print("Results \nLang: {lang}\nTokens: {tokens}\n--------------\n{senses}".format(lang=req_language,
                                                                                       tokens=tokens,
                                                                                       senses=senses_list))
 
@@ -195,14 +183,14 @@ def senses():
     else:
         raise Exception("Request is not json")
 
-    language = req_json['language']
+    req_language = req_json['language']
     word = req_json['word'].strip()
 
-    if language in language_list:
-        wsd = wsd_dict[language]
+    if req_language in language_list_gensim or req_language in language_list_sql:
+        wsd = wsd_dict[req_language]
         word_senses = wsd.get_senses(word)
     else:
-        raise Exception("Unknown language: {}".format(language))
+        raise Exception("Unknown language: {}".format(req_language))
 
     results = []
     for sense in word_senses:
