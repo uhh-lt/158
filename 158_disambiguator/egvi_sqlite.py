@@ -2,13 +2,11 @@
    pip install gensim clint requests pandas nltk
    python -m nltk.downloader punkt """
 
-import argparse
 from collections import namedtuple
 from operator import itemgetter
 
 from numpy import mean
-from pandas import read_csv
-from typing import List
+from typing import List, Tuple
 
 from sqlite_server import SqliteServerModel, SqliteServerInventory
 
@@ -33,9 +31,13 @@ IGNORE_CASE = True
 class WSD(object):
     """ Performs word sense disambiguation based on the induced word senses. """
 
-    def __init__(self, inventories_db_fpath, vectors_db_fpath, language, verbose=False, skip_unknown_words=True):
+    def __init__(self, inventories_db_fpath: str, vectors_db_fpath: str, language: str,
+                 verbose: bool = False, skip_unknown_words: bool = True):
         """ :param inventories_db_fpath path to a CSV file with an induced word sense inventory
             :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
+        self.inventories_db_fpath = inventories_db_fpath
+        self.vectors_db_fpath = vectors_db_fpath
+        self.language = language
 
         self.wv_vectors_db = SqliteServerModel(vectors_db_fpath, language)
         self.inventory = SqliteServerInventory(inventories_db_fpath, language)
@@ -45,7 +47,7 @@ class WSD(object):
 
     # ----------------------
 
-    def get_context_senses(self, context_tokens: List[str], ignore_case=IGNORE_CASE):
+    def get_context_senses(self, context_tokens: List[str], ignore_case: bool = IGNORE_CASE):
         """
         Get senses for all words in context.
         :param context_tokens: list of context tokens.
@@ -103,7 +105,8 @@ class WSD(object):
 
         return token_senses_vectors_dict
 
-    def pick_best_context(self, context_tokens: List[str], context_vectors, target_id: int,
+    @staticmethod
+    def pick_best_context(context_tokens: List[str], context_vectors, target_id: int,
                           sense_vectors, most_significant_num: int):
         context_word_scores = []
 
@@ -124,7 +127,8 @@ class WSD(object):
         best_context_words = context_word_scores[: most_significant_num]
         return best_context_words
 
-    def average_context_vectors(self, best_context_words, context_vectors_dict):
+    @staticmethod
+    def average_context_vectors(best_context_words, context_vectors_dict):
         best_context_vectors = []
 
         for index, (context_word, _) in enumerate(best_context_words):
@@ -137,7 +141,8 @@ class WSD(object):
         context_vector = mean(best_context_vectors, axis=0)
         return context_vector
 
-    def format_result(self, token: str, sense: Sense):
+    @staticmethod
+    def format_result(token: str, sense: Tuple[Sense, float]):
         sense_dict = {"token": token,
                       "word": sense[0].word,
                       "keyword": sense[0].keyword,
@@ -146,7 +151,8 @@ class WSD(object):
                       }
         return sense_dict
 
-    def disambiguate_text(self, tokens: List[str], ignore_case=IGNORE_CASE, most_sign_num=MOST_SIGNIFICANT_NUM):
+    def disambiguate_text(self, tokens: List[str], ignore_case: bool = IGNORE_CASE,
+                          most_sign_num: int = MOST_SIGNIFICANT_NUM):
         """
         Disambiguate all tokens in context.
         :param tokens: list of tokens.
@@ -215,7 +221,7 @@ class WSD(object):
         """
         Disambiguate single token in context.
         :param tokens: list of tokens.
-        :param target_id: id of target word in context
+        :param target_word: word to disambiguate
         :param ignore_case: to look all word cases in inventory
         :param most_sign_num: number of context words which are taken into account
         :return: list of sorted senses with confidence for target token
@@ -244,7 +250,7 @@ class WSD(object):
         target_id = tokens.index(target_word)
 
         # compute distances to all prototypes for each token and pick only those which are discriminative
-        best_context_words = self.pick_best_context(context_vectors_dict, target_id,
+        best_context_words = self.pick_best_context(tokens, context_vectors_dict, target_id,
                                                     token_senses_vectors_dict, most_sign_num)
 
         # average the selected context words
@@ -301,7 +307,7 @@ class WSD(object):
         token_senses_vectors_dict = token_senses_vectors_dict[token.lower()]
 
         # compute distances to all prototypes for each token and pick only those which are discriminative
-        best_context_words = self.pick_best_context(context_vectors_dict, target_id,
+        best_context_words = self.pick_best_context(tokens, context_vectors_dict, target_id,
                                                     token_senses_vectors_dict, most_sign_num)
 
         # average the selected context words
@@ -327,7 +333,7 @@ class WSD(object):
 
     def get_senses(self, word, ignore_case=IGNORE_CASE):
         """ Returns a list of all available senses for a given word. """
-        words = set([word])
+        words = {word}
         if ignore_case:
             words.add(word.title())
             words.add(word.lower())
@@ -342,49 +348,19 @@ class WSD(object):
 
         return senses
 
-    def get_best_sense_id(self, context, target_word, most_significant_num=MOST_SIGNIFICANT_NUM,
+    def get_best_sense_id(self, context, target_word, most_sign_num=MOST_SIGNIFICANT_NUM,
                           ignore_case=IGNORE_CASE):
         """ Perform word sense disambiguation: find the correct sense of the target word inside
         the provided context.
-        :param context context of the target_word that allows to disambigute its meaning, represented as a string
+        :param context context of the target_word that allows to disambiguate its meaning, represented as a string
         :param target_word an ambigous word that need to be disambiguated
+        :param most_sign_num: number of context words which are taken into account
+        :param ignore_case: to look all word cases in inventory
         :return a tuple (sense_id, confidence) for the best sense """
 
-        res = self.disambiguate(context, target_word, most_significant_num, ignore_case)
+        res = self.disambiguate_word(context, target_word, ignore_case, most_sign_num)
         if len(res) > 0:
             sense, confidence = res[0]
             return sense.keyword, confidence
         else:
             return self._unknown
-
-
-def evaluate(wsd_model, dataset_fpath, max_context_words):
-    """ Evaluates the model using the global variable wsd_model """
-
-    output_fpath = dataset_fpath + ".filter{}.pred.csv".format(max_context_words)
-    df = read_csv(dataset_fpath, sep="\t", encoding="utf-8")
-
-    for i, row in df.iterrows():
-        sense_id, _ = wsd_model.get_best_sense_id(row.context, row.word, max_context_words)
-        df.loc[i, "predict_sense_id"] = sense_id
-
-    df.to_csv(output_fpath, sep="\t", encoding="utf-8", index=False)
-    print("Output:", output_fpath)
-
-    return output_fpath
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Sensegram egvi.')
-    parser.add_argument("inventory", help="Path of the inventory file.")
-    parser.add_argument("-fpath", help="Path of the file to evaluate.", required=True)
-    parser.add_argument("-lang", help="Language of the stopwords.", required=True)
-    parser.add_argument("-window", help="Context window size.", type=int, required=True)
-    args = parser.parse_args()
-
-    wsd_model = WSD(args.inventory, language=args.lang, verbose=True, skip_unknown_words=True)
-    evaluate(wsd_model, args.fpath, args.window)
-
-
-if __name__ == '__main__':
-    main()
