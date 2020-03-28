@@ -21,7 +21,7 @@ language_list_sql = config['disambiguator']['sql_langs'].split(',')
 language_list_gensim = config['disambiguator']['top_langs'].split(',')
 
 wsd_dict = dict()
-print("Start with top languages")
+print("Start with top languages", file=sys.stderr)
 for language in language_list_gensim:
     print('WSD[%s] model start' % language, file=sys.stderr)
     dir_path = os.path.join("models", "inventories", language)
@@ -38,7 +38,7 @@ for language in language_list_gensim:
     else:
         print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
 
-print("Non top languages")
+print("Non top languages", file=sys.stderr)
 for language in language_list_sql:
     print('WSD[%s] model start' % language, file=sys.stderr)
     try:
