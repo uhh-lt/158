@@ -11,6 +11,7 @@ from egvi_sqlite import WSD as WSDSQL
 from egvi import WSD as WSDGensim
 
 INVENTORY_TOP = 200
+DICTIONARY_SIZE = 100000
 
 sqlite_db = "./models/Vectors.db"
 inventory_db = "./models/Inventory.db"
@@ -32,7 +33,7 @@ for language in language_list_gensim:
                                        language=language,
                                        verbose=False,
                                        skip_unknown_words=True,
-                                       dictionary=100000)
+                                       dictionary=DICTIONARY_SIZE)
     except Exception as e:
         print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
     else:

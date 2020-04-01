@@ -73,14 +73,21 @@ class WSD(object):
         inventory_df['cluster_words'] = inventory_df.cluster.str.split(",")
         return inventory_df
 
-    def get_senses(self, word: str, ignore_case: bool = IGNORE_CASE):
-        """ Returns a list of all available senses for a given word. """
-        words = {word}
+    def get_senses(self, token: str, ignore_case: bool = IGNORE_CASE):
+        """ Returns a list of all available senses for a given token. """
+        words = {token}
         if ignore_case:
-            words.add(word.title())
-            words.add(word.lower())
+            words.add(token.title())
+            words.add(token.lower())
 
-        senses = self._inventory.loc[self._inventory.word.isin(words)]
+        senses_pd = self._inventory.loc[self._inventory.word.isin(words)]
+        senses_raw = list(senses_pd.itertuples(name='Row', index=False))
+
+        senses = []
+        for sense_raw in senses_raw:
+            sense = Sense(sense_raw.word, sense_raw.keyword, sense_raw.cluster.split(","))
+            senses.append(sense)
+
         return senses
 
     def get_best_sense_id(self, context: List[str], target_word: str, most_sign_num: int = MOST_SIGNIFICANT_NUM,
@@ -146,14 +153,13 @@ class WSD(object):
 
         # get vectors of the keywords that represent the senses
         sense_vectors = {}
-        for _, sense in senses.iterrows():
+        for sense in senses:
             if self._skip_unknown_words and sense.keyword not in self._wv.vocab:
                 if self._verbose:
                     print("Warning: keyword '{}' is not in the word embedding model. Skipping the sense.".format(
                         sense.keyword))
             else:
-                sense_hash = Sense(sense.word, sense.keyword, sense.cluster_words)
-                sense_vectors[sense_hash] = self._wv[sense.keyword]
+                sense_vectors[sense] = self._wv[sense.keyword]
 
         # retrieve vectors of all context words
         context_vectors = {}
