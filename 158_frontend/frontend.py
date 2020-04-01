@@ -23,11 +23,9 @@ if 'disambiguator' not in config['services']:
     config['services']['disambiguator'] = 'http://localhost:5002'
 
 tokenizers = [url for url in config['services']['tokenizer'].split('\n') if url]
-tokenizers = ["http://ltdemos.informatik.uni-hamburg.de/uwsd1580-tokenize"]
 print(tokenizers)
 
 disambiguators = [url for url in config['services']['disambiguator'].split('\n') if url]
-disambiguators = ["http://ltdemos.informatik.uni-hamburg.de/uwsd158-api"]
 print(disambiguators)
 
 json_headers = {'Content-type': 'application/json'}
