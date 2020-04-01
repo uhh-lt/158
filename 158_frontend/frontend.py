@@ -23,9 +23,11 @@ if 'disambiguator' not in config['services']:
     config['services']['disambiguator'] = 'http://localhost:5002'
 
 tokenizers = [url for url in config['services']['tokenizer'].split('\n') if url]
+tokenizers = ["http://ltdemos.informatik.uni-hamburg.de/uwsd1580-tokenize"]
 print(tokenizers)
 
 disambiguators = [url for url in config['services']['disambiguator'].split('\n') if url]
+disambiguators = ["http://ltdemos.informatik.uni-hamburg.de/uwsd158-api"]
 print(disambiguators)
 
 json_headers = {'Content-type': 'application/json'}
@@ -42,7 +44,7 @@ with open("langs.json") as json_file:
 
 @app.route('/', methods=['GET'])
 def index():
-    return render_template('index.html')
+    return render_template('index.html', langs_dict=languages_values)
 
 
 @app.route('/uwsd158')
@@ -50,37 +52,85 @@ def wsd_redirect():
     return redirect(url_for('.index'), code=302)
 
 
+def disambiguate_text(input_text: str, tokenizer_url: str, disambiguator_url: str, chosen_language: str = None):
+    # tokenization
+    text_data = {"text": input_text}
+    tokenization_req = requests.post(tokenizer_url, data=json.dumps(text_data), headers=json_headers)
+    tokenized_data = tokenization_req.json()
+
+    if chosen_language:
+        tokenized_data["language"] = chosen_language
+
+    # disambiguation
+    disambiguation_req = requests.post(disambiguator_url, data=json.dumps(tokenized_data), headers=json_headers)
+    disambiguation = disambiguation_req.json()
+
+    return tokenized_data, disambiguation
+
+
 @app.route('/wsd', methods=['POST'])
 def wsd():
+    output_message = None
+
     text_input = request.form['text']
+    if 'known_language' in request.form:
+        chosen_lang = request.form['selected_language_main']
+    else:
+        chosen_lang = None
+    if 'dis_paragraph' in request.form:
+        disambiguate_by_paragraph = True
+    else:
+        disambiguate_by_paragraph = False
 
     tokenizer_url = random.choice(tokenizers)
     disambiguator_url = os.path.join(random.choice(disambiguators), "disambiguate")
 
-    tokenization = []
     disambiguation = []
 
-    try:
-        text_data = {"text": text_input}
-        tokenization_req = requests.post(tokenizer_url, data=json.dumps(text_data), headers=json_headers)
-        tokenization = tokenization_req.json()
+    if disambiguate_by_paragraph:
+        found_languages = []
+        paragraphs = text_input.splitlines()
 
-        tokenized_data = {"language": tokenization['language'],
-                          "tokens": tokenization['tokens']}
+        for paragraph in paragraphs:
+            if paragraph.strip() == "":
+                continue
+            tokenization_par, disambiguation_par = disambiguate_text(paragraph, tokenizer_url, disambiguator_url)
+            found_languages.append(tokenization_par["language"])
+            disambiguation.extend(disambiguation_par)
 
-        disambiguation_req = requests.post(disambiguator_url, data=json.dumps(tokenized_data), headers=json_headers)
-        disambiguation = disambiguation_req.json()
+            # Add line for a new paragraph
+            disambiguation.extend("\n")
 
-    except Exception as e:
-        # TODO: add logging
-        print(e)
+        if chosen_lang:
+            output_language = chosen_lang
+        else:
+            # Check if more than 1 languages were found
+            # If so - return an error
+            found_languages_set = set(found_languages)
+            if len(found_languages_set) == 1:
+                output_language = list(found_languages_set)[0]
+            else:
+                output_message = "Couldn't choose one language"
+                print(output_message)
+                disambiguation = []
+                output_language = None
+
+    else:
+        tokenization, disambiguation = disambiguate_text(text_input, tokenizer_url, disambiguator_url, chosen_lang)
+        output_language = tokenization["language"]
 
     result = []
 
-    for senses in disambiguation:
-        max_sense = max(senses, key=lambda sense: sense['confidence'])
+    for result_senses in disambiguation:
+
+        # Treat new paragraph
+        if result_senses == "\n":
+            result.append("\n")
+            continue
+
+        max_sense = max(result_senses, key=lambda sense: sense['confidence'])
         result.append(max_sense)
-    return render_template('wsd.html', tokenization=tokenization, disambiguation=result)
+    return render_template('wsd.html', output_language=output_language, disambiguation=result)
 
 
 @app.route('/word_inventory', methods=['GET'])
@@ -90,6 +140,7 @@ def word_senses():
 
 @app.route('/senses', methods=['POST'])
 def senses():
+    output_message = None
     disambiguator_url = os.path.join(random.choice(disambiguators), "senses")
 
     language = request.form["selected_language"]
@@ -103,10 +154,12 @@ def senses():
         senses_list = answer.json()
     except Exception as e:
         print(e)
+        output_message = "SERVER ERROR"
         senses_list = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
 
     if len(senses_list) == 0:
-        senses_list = [[word, "UNKNOWN", ["UNKNOWN"]]]
+        output_message = "UNKNOWN WORD"
+        senses_list = [[word, "UNKNOWN WORD", ["UNKNOWN WORD"]]]
 
     return render_template('senses.html', word=word, senses=senses_list, language=language)
 
