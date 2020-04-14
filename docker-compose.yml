@@ -12,8 +12,6 @@ services:
   disambiguator:
     build: 158_disambiguator
     init: true
-    environment:
-    - LANGUAGE=en
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     - './158_disambiguator/models:/usr/src/app/models:ro'
@@ -29,3 +27,11 @@ services:
     links:
     - tokenizer
     - disambiguator
+  database:
+    image: "postgres" # use latest official postgres version
+    env_file:
+    - './158_postgresql/database.env' # configure postgres
+    volumes:
+    - './158_postgresql/data/:/var/lib/postgresql/data/' # persist data even if container shuts down
+    ports:
+    - "10153:5432"

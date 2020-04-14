@@ -119,3 +119,4 @@ ENV/
 # Databases
 *.db
 158_disambiguator/models/inventories/
+158_postgresql/data/
