@@ -10,7 +10,7 @@ PSQL_DB = "fasttext_vectors"
 PSQL_IP = "localhost"
 PSQL_PORT = "10153"
 
-LIMIT = 100
+LIMIT = 100000
 FASTTEXT_PATH = "./fasttext_models/{lang}/cc.{lang}.300.vec.gz"
 
 logging.basicConfig(filename="vectors_psql.log", level=logging.INFO, filemode='w')
