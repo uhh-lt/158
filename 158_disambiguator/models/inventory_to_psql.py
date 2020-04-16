@@ -11,12 +11,13 @@ PSQL_DB = "inventory"
 PSQL_IP = "localhost"
 PSQL_PORT = "10153"
 
-INVENTORY_PATH = "./inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
+INVENTORY_PATH = "./inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv.gz"
 NEIGHBORS = 200
 
 
 def load_inventory(inventory_fpath):
-    inventory_df = pd.read_csv(inventory_fpath, sep="\t", encoding="utf-8", quoting=3, error_bad_lines=False)
+    inventory_df = pd.read_csv(inventory_fpath, compression='gzip', sep="\t",
+                               encoding="utf-8", quoting=3, error_bad_lines=False)
     return inventory_df
 
 
