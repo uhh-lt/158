@@ -29,9 +29,6 @@ config.read('158.ini')
 language_list_sql = config['disambiguator']['sql_langs'].split(',')
 language_list_gensim = config['disambiguator']['top_langs'].split(',')
 
-language_list_gensim = []
-language_list_sql = ['en', 'ru']
-
 wsd_top_dict = dict()
 print("Start with top languages", file=sys.stderr)
 for language in language_list_gensim:

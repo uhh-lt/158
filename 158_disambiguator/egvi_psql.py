@@ -31,7 +31,7 @@ IGNORE_CASE = True
 class WSD(object):
     """ Performs word sense disambiguation based on the induced word senses. """
 
-    def __init__(self, db_vectors: str, db_inventory: str,  user: str, password: str, host: str, port: str,
+    def __init__(self, db_vectors: str, db_inventory: str, user: str, password: str, host: str, port: str,
                  verbose: bool = False, skip_unknown_words: bool = True):
 
         self.wv_vectors_db = PSQLServerModel(db=db_vectors, user=user, password=password, host=host, port=port)

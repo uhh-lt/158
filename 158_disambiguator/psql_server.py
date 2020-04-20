@@ -17,7 +17,7 @@ class PSQLServer(object):
     def sql_select(self, query: str, input_tuple=None):
         cur = self.conn.cursor()
         if input_tuple:
-            cur.execute(query, (input_tuple, ))
+            cur.execute(query, (input_tuple,))
         else:
             cur.execute(query)
         rows = cur.fetchall()
@@ -39,7 +39,7 @@ class PSQLServerModel(PSQLServer):
         table_name = lang + "_"
 
         # Make tuple from a single variable to put into psql query
-        word_tuple = (word, )
+        word_tuple = (word,)
 
         query = """SELECT * FROM {table} WHERE word = %s""".format(table=table_name)
         rows = self.sql_select(query, word_tuple)
@@ -93,7 +93,7 @@ class PSQLServerInventory(PSQLServer):
             rows = self.sql_select(query, words)
         else:
             query = """SELECT * FROM {table} WHERE word = %s""".format(table=table_name)
-            word_tuple = (word, )
+            word_tuple = (word,)
             rows = self.sql_select(query, word_tuple)
 
         return rows
