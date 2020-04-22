@@ -12,7 +12,7 @@ from egvi_psql import WSD as WSDPSQL
 from egvi import WSD as WSDGensim
 
 INVENTORY_TOP = 200
-DICTIONARY_SIZE = 100000
+DICTIONARY_SIZE = 100
 
 # sqlite_db = "./models/Vectors.db"
 # inventory_db = "./models/Inventory.db"
@@ -21,8 +21,8 @@ PSQL_USER = "158_user"
 PSQL_PASSWORD = "158"
 PSQL_DB_VECTORS = "fasttext_vectors"
 PSQL_DB_INVENTORIES = "inventory"
-PSQL_HOST = "127.0.0.1"
-PSQL_PORT = "10153"
+PSQL_HOST = "database"
+PSQL_PORT = "5432"
 
 config = configparser.ConfigParser()
 config.read('158.ini')
