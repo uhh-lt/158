@@ -84,7 +84,12 @@ def get_sorted_vocabulary(vectors_fpath: str) -> List:
         for i, line in enumerate(in_f):
             if i == 0:
                 continue
-            vocabulary.append(str(line, "utf-8").split(" ")[0])
+            try:
+                utf_line = str(line, "utf-8")
+            except UnicodeDecodeError as uee:
+                continue
+            utf_token = utf_line.split(" ")[0]
+            vocabulary.append(utf_token)
     return vocabulary
 
 
@@ -188,7 +193,7 @@ def get_nns_faiss(targets: List, neighbors_number: int = 200) -> Dict:
             if n > 0:
                 nns_list.append((wv.index2word[i], d))
 
-        word_neighbors_dict[targets[word_index]] = nns_list
+        word_neighbors_dict[word] = nns_list
 
     return word_neighbors_dict
 
@@ -381,24 +386,24 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
     # Get w2v models paths
     wv_fpath, wv_pkl_fpath = get_embedding_path(language)
 
+    # ensure the word vectors are saved in the fast to load gensim format
+    if not exists(wv_pkl_fpath):
+        wv = load_globally(wv_fpath, faiss_gpu)  # loads wv
+        save_to_gensim_format(wv, wv_pkl_fpath)
+    else:
+        wv = load_globally(wv_pkl_fpath, faiss_gpu)
+
     # Get list of words for language
     if eval_vocabulary:
         voc = get_target_words(language)
     else:
-        voc = get_sorted_vocabulary(wv_fpath)
+        voc = list(wv.vocab.keys())
 
     words = {w: None for w in voc}
 
     print("Language:", language)
     print("Visualize:", visualize)
     print("Vocabulary: {} words".format(len(voc)))
-
-    # ensure the word vectors are saved in the fast to load gensim format
-    if not exists(wv_pkl_fpath):
-        wv = load_globally(wv_fpath, faiss_gpu)  # loads wv
-        save_to_gensim_format(wv, wv_pkl_fpath)
-    else:
-        load_globally(wv_pkl_fpath, faiss_gpu)
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
