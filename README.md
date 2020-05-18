@@ -1,8 +1,14 @@
 # 158
 
-This repository will contain all code for a demo of word sense induction and disambiguation for 158 languages based on the pretrained fastText word embeddings. Please commit all the code related to this project here, including small datasets up to a few megabytes.
+This repository contains all code for the [demo of word sense induction and disambiguation for 158 languages](http://ltdemos.informatik.uni-hamburg.de/uwsd158/) based on the pretrained fastText word embeddings.
+
+It accompanies the paper 
+
+[Word Sense Disambiguation for 158 Languages using Word Embeddings Only](http://www.lrec-conf.org/proceedings/lrec2020/pdf/2020.lrec-1.728.pdf) (2020) by Varvara Logacheva, Denis Teslenko, Artem Shelmanov, Steffen Remus, Dmitry Ustalov, Andrey Kutuzov, Ekaterina Artemova, Chris Biemann, Simone Paolo Ponzetto and Alexander Panchenko. Proceedings of The 12th Language Resources and Evaluation Conference (LREC). [bibtex entry](http://www.lrec-conf.org/proceedings/lrec2020/bib/2020.lrec-1.728.bib)   
 
 The **inventories** for all languages are available for download here: [http://ltdata1.informatik.uni-hamburg.de/158/](http://ltdata1.informatik.uni-hamburg.de/158/).
+
+Please commit all the code related to this project here, including small datasets up to a few megabytes.
 
 ## Running
 
