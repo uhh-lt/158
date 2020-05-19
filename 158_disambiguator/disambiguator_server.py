@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-import configparser
-import sys
 import os
+import sys
+import configparser
 
 from flask import Flask, request, jsonify
 from flasgger import Swagger
@@ -16,10 +16,13 @@ swagger = Swagger(app)
 
 
 def load_gensim(lang_list, inventories_fpath, inventory_file_format, inventory_top, dict_size):
+    print("Loading gensim...")
+
     wsd_gensim_dict = {}
 
     for language in lang_list:
-        print('WSD[%s] model start' % language, file=sys.stderr)
+        print('WSD[%s] model start' % language)
+        
         dir_path = os.path.join(inventories_fpath, language)
         inventory_file = inventory_file_format.format(lang=language, top=inventory_top)
         inventory_fpath = os.path.join(dir_path, inventory_file)
@@ -30,13 +33,14 @@ def load_gensim(lang_list, inventories_fpath, inventory_file_format, inventory_t
                                                   skip_unknown_words=True,
                                                   dictionary=dict_size)
         except Exception as e:
-            print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e), file=sys.stderr)
+            print('ERROR WSD[{lang}] model: {error}'.format(lang=language, error=e))
         else:
-            print('WSD[%s] model loaded successfully' % language, file=sys.stderr)
+            print('WSD[%s] model loaded successfully' % language)
     return wsd_gensim_dict
 
 
 def connect_psql(user, password, host, port, vectors_db, inventories_db):
+    print("Connecting to PSQL server...")
     try:
         wsd_psql = WSDPSQL(db_vectors=vectors_db,
                            db_inventory=inventories_db,
@@ -45,7 +49,7 @@ def connect_psql(user, password, host, port, vectors_db, inventories_db):
                            host=host,
                            port=port)
     except Exception as e:
-        print(e, file=sys.stderr)
+        print(e)
         wsd_psql = None
     else:
         print("Connection succeed")
@@ -118,7 +122,10 @@ def disambiguate():
     req_language = req_json['language']
     tokens = req_json['tokens']
 
-    print("Language: {lang}\nTokens: {tokens}".format(lang=req_language, tokens=tokens))
+    input_msg = "Disambiguation:\n" \
+                "Language: {lang}\n" \
+                "Tokens: {tokens}".format(lang=req_language, tokens=tokens)
+    print(input_msg)
 
     if req_language in LANGUAGES_GENSIM:
         wsd = wsd_gensim_dict[req_language]
@@ -128,9 +135,12 @@ def disambiguate():
     else:
         raise Exception("Unknown language: {}".format(req_language))
 
-    print("Results \nLang: {lang}\nTokens: {tokens}\n--------------\n{senses}".format(lang=req_language,
-                                                                                      tokens=tokens,
-                                                                                      senses=senses_list))
+    output_msg = "Results \n" \
+                 "Lang: {lang}\n" \
+                 "Tokens: {tokens}\n" \
+                 "--------------\n" \
+                 "{senses}".format(lang=req_language, tokens=tokens, senses=senses_list)
+    print(output_msg)
 
     results_json = jsonify(senses_list)
     return results_json
@@ -184,6 +194,11 @@ def senses():
     req_language = req_json['language']
     word = req_json['word'].strip()
 
+    input_msg = "Senses:\n" \
+                "Language: {lang}\n" \
+                "Word: {word}".format(lang=req_language, word=word)
+    print(input_msg)
+
     if req_language in LANGUAGES_GENSIM:
         wsd = wsd_gensim_dict[req_language]
         word_senses = wsd.get_senses(word)
@@ -220,14 +235,12 @@ if __name__ == '__main__':
     INVENTORY_TOP = int(config['disambiguator']['inventory_top'])
     DICTIONARY_SIZE = int(config['disambiguator']['dict_size'])
 
-    print("Loading gensim...", file=sys.stderr)
     wsd_gensim_dict = load_gensim(lang_list=LANGUAGES_GENSIM,
                                   inventories_fpath=INVENTORIES_FPATH,
                                   inventory_file_format=INVENTORY_FILE_FORMAT,
                                   inventory_top=INVENTORY_TOP,
                                   dict_size=DICTIONARY_SIZE)
 
-    print("Connection to PSQL server...", file=sys.stderr)
     wsd_psql = connect_psql(user=PSQL_USER,
                             password=PSQL_PASSWORD,
                             host=PSQL_HOST,
