@@ -363,7 +363,7 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
                 break
 
             # Filter tokens with punctuation or digits
-            if word in string.punctuation or not has_digit_or_dot(word):
+            if word in string.punctuation or has_digit_or_dot(word):
                 print("Skipping token '{}', because it is not a word\n".format(word))
                 continue
 
