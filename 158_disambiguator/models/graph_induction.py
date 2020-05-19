@@ -1,5 +1,4 @@
 import os
-import gzip
 import codecs
 import string
 import logging
@@ -170,8 +169,6 @@ def get_nns_faiss(targets: List, neighbors_number: int = 200) -> Dict:
     # Write neighbors into dict
     word_neighbors_dict = dict()
     for word_index, (_D, _I) in enumerate(zip(D, I)):
-
-        # Check if word is punct
         word = targets[word_index]
         nns_list = []
         for n, (d, i) in enumerate(zip(_D.ravel(), _I.ravel())):
@@ -339,11 +336,9 @@ def get_cluster_lines(G, nodes):
 
 
 def create_logger(language: str, path: str, name: str = 'info', level=logging.INFO):
-    # Create logger for this language
     logger = logging.getLogger("graphVector {} ({})".format(language, name))
     logger.setLevel(level)
 
-    # Create the logging file handler
     log_path = os.path.join(path, name + ".log")
     fh = logging.FileHandler(log_path)
 
@@ -361,24 +356,20 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
     inventory_path = os.path.join("inventories", language)
     log_dir_path = os.path.join(inventory_path, "logs")
-
-    # Create folder for language
     os.makedirs(log_dir_path, exist_ok=True)
 
     logger_info = create_logger(language=language, path=log_dir_path)
     logger_error = create_logger(language=language, path=log_dir_path, name='error', level=logging.ERROR)
 
-    # Get w2v models paths
     wv_fpath, wv_pkl_fpath = get_embedding_path(language)
 
     # ensure the word vectors are saved in the fast to load gensim format
     if not exists(wv_pkl_fpath):
-        wv = load_globally(wv_fpath, faiss_gpu)  # loads wv
+        wv = load_globally(wv_fpath, faiss_gpu)
         save_to_gensim_format(wv, wv_pkl_fpath)
     else:
         wv = load_globally(wv_pkl_fpath, faiss_gpu)
 
-    # Get list of words for language
     if eval_vocabulary:
         voc = get_target_words(language)
     else:
@@ -421,7 +412,6 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
             if index + 1 == LIMIT:
                 print("OUT OF LIMIT {}".format(LIMIT))
-
                 logger_info.error("OUT OF LIMIT".format(LIMIT))
                 break
 
