@@ -1,4 +1,5 @@
 import os
+import re
 import codecs
 import string
 import logging
@@ -19,9 +20,15 @@ from chinese_whispers import chinese_whispers, aggregate_clusters
 
 from load_fasttext import download_word_embeddings
 
-verbose = True
+VERBOSE = True
+REGEX_FILTER = re.compile('[\d.]')
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+
+def has_digit_or_dot(input: str):
+    result = REGEX_FILTER.search(input)
+    return result is not None
 
 
 def get_embedding_path(language):
@@ -100,7 +107,7 @@ def get_nns_faiss_batch(targets: List, batch_size: int, neighbors_number: int = 
     """
 
     word_neighbors_dict = dict()
-    if verbose:
+    if VERBOSE:
         print("Start Faiss with batches")
 
     logger_info.info("Start Faiss with batches")
@@ -108,7 +115,7 @@ def get_nns_faiss_batch(targets: List, batch_size: int, neighbors_number: int = 
     for start in range(0, len(targets), batch_size):
         end = start + batch_size
 
-        if verbose:
+        if VERBOSE:
             print("batch {} to {} of {}".format(start, end, len(targets)))
 
         logger_info.info("batch {} to {} of {}".format(start, end, len(targets)))
@@ -227,7 +234,7 @@ def wsi(ego, neighbors_number: int) -> Dict:
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
-    if verbose:
+    if VERBOSE:
         print("{}\t{:f} sec.".format(ego, time() - tic))
 
     return {"network": ego_network, "nodes": nodes}
@@ -339,7 +346,7 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
             plt_topn_path = os.path.join(plt_path, str(topn))
             os.makedirs(plt_topn_path, exist_ok=True)
 
-        if verbose:
+        if VERBOSE:
             print('{} neighbors'.format(topn))
 
         logger_info.info("{} neighbors".format(topn))
@@ -350,21 +357,25 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
 
+        word_counter = 0
         for index, word in enumerate(words):
 
-            if index + 1 == limit:
+            if word_counter == limit:
                 print("OUT OF LIMIT {}".format(limit))
                 logger_info.info("OUT OF LIMIT".format(limit))
                 break
 
-            if word in string.punctuation:
-                print("Skipping word '{}', because it is a punctuation\n".format(word))
+            # Filter tokens with punctuation or digits
+            if word in string.punctuation or not has_digit_or_dot(word):
+                print("Skipping token '{}', because it is not a word\n".format(word))
                 continue
 
-            if verbose:
-                print("{} neighbors, word {} of {}, LIMIT = {}\n".format(topn, index + 1, len(words), limit))
+            word_counter += 1
 
-            logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), limit))
+            if VERBOSE:
+                print("{} neighbors, word {} of {}, LIMIT = {}\n".format(topn, word_counter, len(words), limit))
+
+            logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, word_counter, len(words), limit))
 
             try:
                 words[word] = wsi(word, neighbors_number=topn)
