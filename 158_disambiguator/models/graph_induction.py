@@ -58,16 +58,13 @@ def load_globally(word_vectors_fpath: str, faiss_gpu: bool, gpu_device: int):
     global wv
     global index_faiss
 
-    if not wv:
-        print("Loading word vectors from:", word_vectors_fpath)
-        tic = time()
-        if word_vectors_fpath.endswith(".vec.gz"):
-            wv = KeyedVectors.load_word2vec_format(word_vectors_fpath, binary=False, unicode_errors="ignore")
-        else:
-            wv = KeyedVectors.load(word_vectors_fpath)
-        print("Loaded in {} sec.".format(time() - tic))
+    print("Loading word vectors from:", word_vectors_fpath)
+    tic = time()
+    if word_vectors_fpath.endswith(".vec.gz"):
+        wv = KeyedVectors.load_word2vec_format(word_vectors_fpath, binary=False, unicode_errors="ignore")
     else:
-        print("Using loaded word vectors.")
+        wv = KeyedVectors.load(word_vectors_fpath)
+    print("Loaded in {} sec.".format(time() - tic))
 
     wv.init_sims(replace=True)
 
