@@ -1,15 +1,35 @@
-import sqlite3
 import pandas as pd
 import os
 import logging
-from sqlite3 import Error
+from sqlalchemy import create_engine
 
+PSQL_USER = "158_user"
+PSQL_PASSWORD = "158"
+PSQL_DB = "inventory"
+PSQL_IP = "localhost"
+PSQL_PORT = "10153"
 
-logging.basicConfig(filename="inventory_sqlite.log", level=logging.INFO, filemode='w')
+INVENTORY_PATH = "./inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv.gz"
+NEIGHBORS = 200
+
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("logs/inventory_psql.log"),
+        logging.StreamHandler()
+    ]
+)
 
 
 def load_inventory(inventory_fpath):
-    inventory_df = pd.read_csv(inventory_fpath, sep="\t", encoding="utf-8", quoting=3, error_bad_lines=False)
+    inventory_df = pd.read_csv(inventory_fpath,
+                               compression='gzip',
+                               sep="\t",
+                               encoding="utf-8",
+                               quoting=3,
+                               error_bad_lines=False)
     return inventory_df
 
 
@@ -20,35 +40,17 @@ def create_vectors_df(wv):
     return vectors_df
 
 
-def create_connection(db_file):
-    """ create a database connection to the SQLite database
-        specified by the db_file
-    :param db_file: database file
-    :return: Connection object or None
-    """
-    conn = None
-    try:
-        conn = sqlite3.connect(db_file)
-        print('Connection succeed')
-        logging.info('Connection succeed')
-    except Error as e:
-        print(e)
-        logging.error(e)
-
-    return conn
-
-
-def upload_inventory_sqlite(inventory: pd.DataFrame, database: str, table_name: str):
-    conn = create_connection(database)
-    inventory.to_sql(table_name, conn, if_exists='replace', index=True)
-    conn.close()
-    print('Upload succeed: {}'.format(table_name))
+def upload_vectors_sqlite(inventory_df: pd.DataFrame, database: str, table_name: str):
+    engine = create_engine('postgresql://{user}:{pswd}@{ip}:{port}/{db}'.format(user=PSQL_USER,
+                                                                                pswd=PSQL_PASSWORD,
+                                                                                ip=PSQL_IP,
+                                                                                port=PSQL_PORT,
+                                                                                db=database))
+    inventory_df.to_sql(table_name, engine, if_exists='replace')
     logging.info('Upload succeed: {}'.format(table_name))
 
 
 def main():
-    
-    sqlite_db = "Inventory.db"
     lang_list = ['af', 'als', 'am', 'an', 'ar', 'arz', 'as',
                  'ast', 'az', 'azb', 'ba', 'bar', 'bcl', 'be',
                  'bg', 'bh', 'bn', 'bo', 'bpy', 'br', 'bs',
@@ -72,27 +74,23 @@ def main():
                  'tr', 'tt', 'ug', 'uk', 'ur', 'uz', 'vec',
                  'vi', 'vls', 'vo', 'wa', 'war', 'xmf', 'yi',
                  'yo', 'zea', 'zh', 'ko']
-    neighbors = 200
 
-    inventory_path = "./inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.tsv"
     for lang in lang_list:
         logging.info('Start: {}'.format(lang))
-        print('Start: {}'.format(lang))
-        inventory_lang_path = inventory_path.format(lang=lang, knn=neighbors)
+        inventory_lang_path = INVENTORY_PATH.format(lang=lang, knn=NEIGHBORS)
         if not os.path.exists(inventory_lang_path):
-            logging.error('No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=neighbors))
-            print('No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=neighbors))
+            log_error_message = 'No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=NEIGHBORS)
+            logging.error(log_error_message)
             continue
 
         logging.info('Loading inventory: {}'.format(lang))
-        print('Loading inventory: {}'.format(lang))
         inventory_df = load_inventory(inventory_lang_path)
-        logging.info('Uploading to sqlite: {}'.format(lang))
-        print('Uploading to sqlite: {}'.format(lang))
+
+        logging.info('Uploading to psql: {}'.format(lang))
         table_name = lang + "_"
-        upload_inventory_sqlite(inventory_df, database=sqlite_db, table_name=table_name)
+        upload_vectors_sqlite(inventory_df, database=PSQL_DB, table_name=table_name)
+
     logging.info('Finish')
-    print('Finish')
 
 
 if __name__ == '__main__':

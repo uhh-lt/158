@@ -8,7 +8,7 @@ from operator import itemgetter
 from numpy import mean
 from typing import List, Tuple
 
-from sqlite_server import SqliteServerModel, SqliteServerInventory
+from psql_server import PSQLServerModel, PSQLServerInventory
 
 SenseBase = namedtuple('Sense', 'word keyword cluster')
 
@@ -31,31 +31,27 @@ IGNORE_CASE = True
 class WSD(object):
     """ Performs word sense disambiguation based on the induced word senses. """
 
-    def __init__(self, inventories_db_fpath: str, vectors_db_fpath: str, language: str,
+    def __init__(self, db_vectors: str, db_inventory: str, user: str, password: str, host: str, port: str,
                  verbose: bool = False, skip_unknown_words: bool = True):
-        """ :param inventories_db_fpath path to a CSV file with an induced word sense inventory
-            :param language code of the target language of the inventory, e.g. "en", "de" or "fr" """
-        self.inventories_db_fpath = inventories_db_fpath
-        self.vectors_db_fpath = vectors_db_fpath
-        self.language = language
 
-        self.wv_vectors_db = SqliteServerModel(vectors_db_fpath, language)
-        self.inventory = SqliteServerInventory(inventories_db_fpath, language)
+        self.wv_vectors_db = PSQLServerModel(db=db_vectors, user=user, password=password, host=host, port=port)
+        self.inventory = PSQLServerInventory(db=db_inventory, user=user, password=password, host=host, port=port)
         self._verbose = verbose
         self._unknown = (Sense("UNKNOWN", "UNKNOWN", ""), 1.0)
         self._skip_unknown_words = skip_unknown_words
 
     # ----------------------
 
-    def get_context_senses(self, context_tokens: List[str], ignore_case: bool = IGNORE_CASE):
+    def get_context_senses(self, context_tokens: List[str], language: str, ignore_case: bool = IGNORE_CASE):
         """
         Get senses for all words in context.
         :param context_tokens: list of context tokens.
+        :param language: code of the target language of the inventory, e.g. "en", "de" or "fr".
         :param ignore_case: to look all word cases in inventory
         :return: dict (word, list of senses) and list (all senses)
         """
         # Get all senses for context
-        context_senses_tuples_list = self.inventory.get_tokens_senses(context_tokens, ignore_case)
+        context_senses_tuples_list = self.inventory.get_tokens_senses(context_tokens, language, ignore_case)
 
         # Convert to list of Sense and dict of words
         context_senses_list = []
@@ -75,10 +71,11 @@ class WSD(object):
 
         return context_senses_dict, context_senses_list
 
-    def get_senses_vectors(self, senses: List[Sense]):
+    def get_senses_vectors(self, senses: List[Sense], language: str):
         """
         Get vectors for senses.
         :param senses: list of senses
+        :param language: code of the target language of the inventory, e.g. "en", "de" or "fr".
         :return: dict (Sense, numpy vector)
         """
         # get senses of all senses' keywords
@@ -86,7 +83,9 @@ class WSD(object):
         if not keywords:
             return {}
 
-        keywords_vectors_dict = self.wv_vectors_db.get_tokens_vectors(keywords)
+        keywords_vectors_dict = self.wv_vectors_db.get_tokens_vectors(keywords, language)
+        if not keywords_vectors_dict:
+            return {}
 
         # match keyword vector to the sense
         senses_vectors_dict = {}
@@ -151,25 +150,27 @@ class WSD(object):
                       }
         return sense_dict
 
-    def disambiguate_text(self, tokens: List[str], ignore_case: bool = IGNORE_CASE,
+    def disambiguate_text(self, tokens: List[str], language: str, ignore_case: bool = IGNORE_CASE,
                           most_sign_num: int = MOST_SIGNIFICANT_NUM):
         """
         Disambiguate all tokens in context.
         :param tokens: list of tokens.
+        :param language: code of the target language of the inventory, e.g. "en", "de" or "fr".
         :param ignore_case: to look all word cases in inventory
         :param most_sign_num: number of context words which are taken into account
         :return: list of sorted senses with confidence for each token
         """
 
         # get senses inventory of all words
-        token_senses_dict, context_senses_list = self.get_context_senses(tokens, ignore_case=ignore_case)
+        token_senses_dict, context_senses_list = self.get_context_senses(tokens,
+                                                                         language=language, ignore_case=ignore_case)
 
         # get vectors of the keywords that represent the senses (dict)
-        token_senses_vectors_dict = self.get_senses_vectors(context_senses_list)
+        token_senses_vectors_dict = self.get_senses_vectors(context_senses_list, language=language)
 
         # retrieve vectors of all context words
         if token_senses_vectors_dict:
-            context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens)
+            context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens, lang=language)
         else:
             context_vectors_dict = {}
 
@@ -216,24 +217,26 @@ class WSD(object):
 
         return result
 
-    def disambiguate_word(self, tokens: List[str], target_word: str,
+    def disambiguate_word(self, tokens: List[str], target_word: str, language: str,
                           ignore_case=IGNORE_CASE, most_sign_num=MOST_SIGNIFICANT_NUM):
         """
         Disambiguate single token in context.
         :param tokens: list of tokens.
         :param target_word: word to disambiguate
+        :param language: code of the target language of the inventory, e.g. "en", "de" or "fr".
         :param ignore_case: to look all word cases in inventory
         :param most_sign_num: number of context words which are taken into account
         :return: list of sorted senses with confidence for target token
         """
         # get senses inventory of all words
-        token_senses_dict, context_senses_list = self.get_context_senses(tokens, ignore_case=ignore_case)
+        token_senses_dict, context_senses_list = self.get_context_senses(tokens,
+                                                                         language=language, ignore_case=ignore_case)
 
         # get vectors of the keywords that represent the senses (dict)
-        token_senses_vectors_dict = self.get_senses_vectors(context_senses_list)
+        token_senses_vectors_dict = self.get_senses_vectors(context_senses_list, language=language)
 
         # retrieve vectors of all context words
-        context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens)
+        context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens, lang=language)
 
         result = []
 
@@ -274,24 +277,26 @@ class WSD(object):
 
         return result
 
-    def disambiguate_word_by_id(self, tokens: List[str], target_id: int,
+    def disambiguate_word_by_id(self, tokens: List[str], target_id: int, language: str,
                                 ignore_case=IGNORE_CASE, most_sign_num=MOST_SIGNIFICANT_NUM):
         """
         Disambiguate single token in context.
         :param tokens: list of tokens.
         :param target_id: id of target word in context
+        :param language: code of the target language of the inventory, e.g. "en", "de" or "fr".
         :param ignore_case: to look all word cases in inventory
         :param most_sign_num: number of context words which are taken into account
         :return: list of sorted senses with confidence for target token
         """
         # get senses inventory of all words
-        token_senses_dict, context_senses_list = self.get_context_senses(tokens, ignore_case=ignore_case)
+        token_senses_dict, context_senses_list = self.get_context_senses(tokens,
+                                                                         language=language, ignore_case=ignore_case)
 
         # get vectors of the keywords that represent the senses (dict)
-        token_senses_vectors_dict = self.get_senses_vectors(context_senses_list)
+        token_senses_vectors_dict = self.get_senses_vectors(context_senses_list, language=language)
 
         # retrieve vectors of all context words
-        context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens)
+        context_vectors_dict = self.wv_vectors_db.get_tokens_vectors(tokens, lang=language)
 
         result = []
 
@@ -331,16 +336,9 @@ class WSD(object):
 
         return result
 
-    def get_senses(self, word, ignore_case=IGNORE_CASE):
+    def get_senses(self, word, language: str, ignore_case=IGNORE_CASE):
         """ Returns a list of all available senses for a given word. """
-        words = {word}
-        if ignore_case:
-            words.add(word.title())
-            words.add(word.lower())
-
-        rows = []
-        for word in words:
-            rows += self.inventory.get_word_senses(word)
+        rows = self.inventory.get_word_senses(word, language, ignore_case)
 
         senses = []
         for row in rows:
@@ -348,17 +346,18 @@ class WSD(object):
 
         return senses
 
-    def get_best_sense_id(self, context, target_word, most_sign_num=MOST_SIGNIFICANT_NUM,
-                          ignore_case=IGNORE_CASE):
+    def get_best_sense_id(self, context, target_word: str, language: str,
+                          most_sign_num=MOST_SIGNIFICANT_NUM, ignore_case=IGNORE_CASE):
         """ Perform word sense disambiguation: find the correct sense of the target word inside
         the provided context.
         :param context context of the target_word that allows to disambiguate its meaning, represented as a string
+        :param language: code of the target language of the inventory, e.g. "en", "de" or "fr".
         :param target_word an ambigous word that need to be disambiguated
         :param most_sign_num: number of context words which are taken into account
         :param ignore_case: to look all word cases in inventory
         :return a tuple (sense_id, confidence) for the best sense """
 
-        res = self.disambiguate_word(context, target_word, ignore_case, most_sign_num)
+        res = self.disambiguate_word(context, target_word, language, ignore_case, most_sign_num)
         if len(res) > 0:
             sense, confidence = res[0]
             return sense.keyword, confidence
