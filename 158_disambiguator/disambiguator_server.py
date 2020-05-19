@@ -9,28 +9,15 @@ from flasgger import Swagger
 
 from egvi import WSDGensim, WSDPSQL
 
-config = configparser.ConfigParser()
-config.read('158.ini')
+CONFIG_PATH = '158.ini'
 
-LANGUAGES_SQL = config['disambiguator']['sql_langs'].split(',')
-LANGUAGES_GENSIM = config['disambiguator']['top_langs'].split(',')
-
-PSQL_USER = config['postgress']['user']
-PSQL_PASSWORD = config['postgress']['password']
-PSQL_DB_VECTORS = config['postgress']['vectors_db']
-PSQL_DB_INVENTORIES = config['postgress']['inventories_db']
-PSQL_HOST = config['postgress']['host']
-PSQL_PORT = config['postgress']['port']
-
-INVENTORY_FILE_FORMAT = config['disambiguator']['inventory_file_format']
-INVENTORIES_FPATH = config['disambiguator']['inventories_fpath']
-INVENTORY_TOP = int(config['disambiguator']['inventory_top'])
-DICTIONARY_SIZE = int(config['disambiguator']['dict_size'])
+app = Flask(__name__)
+swagger = Swagger(app)
 
 
 def load_gensim(lang_list, inventories_fpath, inventory_file_format, inventory_top, dict_size):
     wsd_gensim_dict = {}
-    print("Start with top languages", file=sys.stderr)
+
     for language in lang_list:
         print('WSD[%s] model start' % language, file=sys.stderr)
         dir_path = os.path.join(inventories_fpath, language)
@@ -49,29 +36,20 @@ def load_gensim(lang_list, inventories_fpath, inventory_file_format, inventory_t
     return wsd_gensim_dict
 
 
-wsd_gensim_dict = load_gensim(lang_list=LANGUAGES_GENSIM,
-                              inventories_fpath=INVENTORIES_FPATH,
-                              inventory_file_format=INVENTORY_FILE_FORMAT,
-                              inventory_top=INVENTORY_TOP,
-                              dict_size=DICTIONARY_SIZE)
-
-print("Non top languages", file=sys.stderr)
-print("Connect to PSQL server")
-try:
-    wsd_nontop = WSDPSQL(db_vectors=PSQL_DB_VECTORS,
-                         db_inventory=PSQL_DB_INVENTORIES,
-                         user=PSQL_USER,
-                         password=PSQL_PASSWORD,
-                         host=PSQL_HOST,
-                         port=PSQL_PORT)
-except Exception as e:
-    print(e, file=sys.stderr)
-else:
-    print("Connection succeed")
-
-app = Flask(__name__)
-
-swagger = Swagger(app)
+def connect_psql(user, password, host, port, vectors_db, inventories_db):
+    try:
+        wsd_psql = WSDPSQL(db_vectors=vectors_db,
+                           db_inventory=inventories_db,
+                           user=user,
+                           password=password,
+                           host=host,
+                           port=port)
+    except Exception as e:
+        print(e, file=sys.stderr)
+        wsd_psql = None
+    else:
+        print("Connection succeed")
+    return wsd_psql
 
 
 def sense_to_dict(sense):
@@ -146,7 +124,7 @@ def disambiguate():
         wsd = wsd_gensim_dict[req_language]
         senses_list = wsd.disambiguate_text(tokens)
     elif req_language in LANGUAGES_SQL:
-        senses_list = wsd_nontop.disambiguate_text(tokens, language=req_language)
+        senses_list = wsd_psql.disambiguate_text(tokens, language=req_language)
     else:
         raise Exception("Unknown language: {}".format(req_language))
 
@@ -210,7 +188,7 @@ def senses():
         wsd = wsd_gensim_dict[req_language]
         word_senses = wsd.get_senses(word)
     elif req_language in LANGUAGES_SQL:
-        word_senses = wsd_nontop.get_senses(word, language=req_language)
+        word_senses = wsd_psql.get_senses(word, language=req_language)
     else:
         raise Exception("Unknown language: {}".format(req_language))
 
@@ -224,4 +202,37 @@ def senses():
 
 
 if __name__ == '__main__':
+    config = configparser.ConfigParser()
+    config.read(CONFIG_PATH)
+
+    LANGUAGES_SQL = config['disambiguator']['sql_langs'].split(',')
+    LANGUAGES_GENSIM = config['disambiguator']['top_langs'].split(',')
+
+    PSQL_USER = config['postgress']['user']
+    PSQL_PASSWORD = config['postgress']['password']
+    PSQL_DB_VECTORS = config['postgress']['vectors_db']
+    PSQL_DB_INVENTORIES = config['postgress']['inventories_db']
+    PSQL_HOST = config['postgress']['host']
+    PSQL_PORT = config['postgress']['port']
+
+    INVENTORY_FILE_FORMAT = config['disambiguator']['inventory_file_format']
+    INVENTORIES_FPATH = config['disambiguator']['inventories_fpath']
+    INVENTORY_TOP = int(config['disambiguator']['inventory_top'])
+    DICTIONARY_SIZE = int(config['disambiguator']['dict_size'])
+
+    print("Loading gensim...", file=sys.stderr)
+    wsd_gensim_dict = load_gensim(lang_list=LANGUAGES_GENSIM,
+                                  inventories_fpath=INVENTORIES_FPATH,
+                                  inventory_file_format=INVENTORY_FILE_FORMAT,
+                                  inventory_top=INVENTORY_TOP,
+                                  dict_size=DICTIONARY_SIZE)
+
+    print("Connection to PSQL server...", file=sys.stderr)
+    wsd_psql = connect_psql(user=PSQL_USER,
+                            password=PSQL_PASSWORD,
+                            host=PSQL_HOST,
+                            port=PSQL_PORT,
+                            vectors_db=PSQL_DB_VECTORS,
+                            inventories_db=PSQL_DB_INVENTORIES)
+
     app.run(host='0.0.0.0', port=5002)
