@@ -13,15 +13,14 @@ INVENTORY_PATH = "./inventories/{lang}/cc.{lang}.300.vec.gz.top{knn}.inventory.t
 NEIGHBORS = 200
 
 os.makedirs("logs", exist_ok=True)
-logging.basicConfig(filename="logs/inventory_psql.log", level=logging.INFO, filemode='w')
-
-
-def log_and_print(message: str, type: str = 'info'):
-    print(message)
-    if type == 'info':
-        logging.info(message)
-    elif type == 'error':
-        logging.error(message)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("logs/inventory_psql.log"),
+        logging.StreamHandler()
+    ]
+)
 
 
 def load_inventory(inventory_fpath):
@@ -48,7 +47,7 @@ def upload_vectors_sqlite(inventory_df: pd.DataFrame, database: str, table_name:
                                                                                 port=PSQL_PORT,
                                                                                 db=database))
     inventory_df.to_sql(table_name, engine, if_exists='replace')
-    log_and_print(message='Upload succeed: {}'.format(table_name), type='info')
+    logging.info('Upload succeed: {}'.format(table_name))
 
 
 def main():
@@ -77,21 +76,21 @@ def main():
                  'yo', 'zea', 'zh', 'ko']
 
     for lang in lang_list:
-        log_and_print(message='Start: {}'.format(lang), type='info')
+        logging.info('Start: {}'.format(lang))
         inventory_lang_path = INVENTORY_PATH.format(lang=lang, knn=NEIGHBORS)
         if not os.path.exists(inventory_lang_path):
             log_error_message = 'No inventory for {lang} with {knn} neighbors'.format(lang=lang, knn=NEIGHBORS)
-            log_and_print(message=log_error_message, type='error')
+            logging.error(log_error_message)
             continue
 
-        log_and_print(message='Loading inventory: {}'.format(lang), type='info')
+        logging.info('Loading inventory: {}'.format(lang))
         inventory_df = load_inventory(inventory_lang_path)
 
-        log_and_print(message='Uploading to psql: {}'.format(lang), type='info')
+        logging.info('Uploading to psql: {}'.format(lang))
         table_name = lang + "_"
         upload_vectors_sqlite(inventory_df, database=PSQL_DB, table_name=table_name)
 
-    log_and_print(message='Finish', type='info')
+    logging.info('Finish')
 
 
 if __name__ == '__main__':

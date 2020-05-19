@@ -14,15 +14,14 @@ LIMIT = 100000
 FASTTEXT_PATH = "./fasttext_models/{lang}/cc.{lang}.300.vec.gz"
 
 os.makedirs("logs", exist_ok=True)
-logging.basicConfig(filename="logs/fasttext_psql.log", level=logging.INFO, filemode='w')
-
-
-def log_and_print(message: str, type: str = 'info'):
-    print(message)
-    if type == 'info':
-        logging.info(message)
-    elif type == 'error':
-        logging.error(message)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("logs/fasttext_psql.log"),
+        logging.StreamHandler()
+    ]
+)
 
 
 def load_keyed_vectors(wv_fpath, limit):
@@ -46,24 +45,24 @@ def upload_vectors_sqlite(vectors: pd.DataFrame, database: str, table_name: str)
                                                                db=database)
     engine = create_engine(url)
     vectors.to_sql(table_name, engine, if_exists='replace')
-    log_and_print(message='Upload succeed: {}'.format(table_name), type='info')
+    logging.info('Upload succeed: {}'.format(table_name))
     return None
 
 
 def load_lang(lang: str, fasttext_path):
-    log_and_print(message='Start: {}'.format(lang), type='info')
+    logging.info('Start: {}'.format(lang))
 
     if not os.path.exists(fasttext_path):
-        log_and_print(message='No model for {lang}'.format(lang=lang), type='error')
+        logging.error('No model for {lang}'.format(lang=lang))
         return None
 
-    log_and_print(message='Loading model: {}'.format(lang), type='info')
+    logging.info('Loading model: {}'.format(lang))
     wv = load_keyed_vectors(fasttext_path, limit=LIMIT)
 
-    log_and_print(message='Creating dataframe: {}'.format(lang), type='info')
+    logging.info('Creating dataframe: {}'.format(lang))
     vectors_df = create_vectors_df(wv)
 
-    log_and_print(message='Uploading to psql: {}', type='info')
+    logging.info('Uploading to psql: {}')
     table_name = lang + "_"
     upload_vectors_sqlite(vectors_df, database=PSQL_DB, table_name=table_name)
     return None
@@ -98,7 +97,7 @@ def main():
         fasttext_fpath = FASTTEXT_PATH.format(lang=lang)
         load_lang(lang, fasttext_fpath)
 
-    log_and_print(message='Finish', type='info')
+    logging.info('Finish')
 
 
 if __name__ == '__main__':
