@@ -1,6 +1,18 @@
 import os
 import requests
+import logging
 from clint.textui import progress
+
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(filename="logs/load_fasttext.log", level=logging.INFO, filemode='w')
+
+
+def log_and_print(logging, message: str, type: str = 'info'):
+    print(message)
+    if type == 'info':
+        logging.info(message)
+    elif type == 'error':
+        logging.error(message)
 
 
 def download_word_embeddings(language):
@@ -14,10 +26,12 @@ def download_word_embeddings(language):
     wv_pkl_fpath = wv_fpath + ".pkl"
 
     if os.path.exists(wv_fpath):
-        print('Exists')
+        log_and_print(logging, message='File for {lang} already exists'.format(lang=language), type='info')
     else:
         wv_uri = "https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{}.300.vec.gz".format(language)
-        print("Downloading the fasttext model from {}".format(wv_uri))
+
+        log_and_print(logging, message="Downloading the fasttext model from {}".format(wv_uri), type='info')
+
         r = requests.get(wv_uri, stream=True)
         with open(wv_fpath, "wb") as f:
             total_length = int(r.headers.get("content-length"))

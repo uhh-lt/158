@@ -13,12 +13,21 @@ PSQL_PORT = "10153"
 LIMIT = 100000
 FASTTEXT_PATH = "./fasttext_models/{lang}/cc.{lang}.300.vec.gz"
 
-logging.basicConfig(filename="vectors_psql.log", level=logging.INFO, filemode='w')
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(filename="logs/fasttext_psql.log", level=logging.INFO, filemode='w')
+
+
+def log_and_print(message: str, type: str = 'info'):
+    print(message)
+    if type == 'info':
+        logging.info(message)
+    elif type == 'error':
+        logging.error(message)
 
 
 def load_keyed_vectors(wv_fpath, limit):
     wv = KeyedVectors.load_word2vec_format(wv_fpath, binary=False, unicode_errors="ignore", limit=limit)
-    wv.init_sims(replace=True)  # normalize the loaded vectors to L2 norm
+    wv.init_sims(replace=True)  # Normalize the loaded vectors to L2 norm
     return wv
 
 
@@ -30,14 +39,34 @@ def create_vectors_df(wv):
 
 
 def upload_vectors_sqlite(vectors: pd.DataFrame, database: str, table_name: str):
-    engine = create_engine('postgresql://{user}:{pswd}@{ip}:{port}/{db}'.format(user=PSQL_USER,
-                                                                                pswd=PSQL_PASSWORD,
-                                                                                ip=PSQL_IP,
-                                                                                port=PSQL_PORT,
-                                                                                db=database))
+    url = 'postgresql://{user}:{pswd}@{ip}:{port}/{db}'.format(user=PSQL_USER,
+                                                               pswd=PSQL_PASSWORD,
+                                                               ip=PSQL_IP,
+                                                               port=PSQL_PORT,
+                                                               db=database)
+    engine = create_engine(url)
     vectors.to_sql(table_name, engine, if_exists='replace')
-    print('Upload succeed: {}'.format(table_name))
-    logging.info('Upload succeed: {}'.format(table_name))
+    log_and_print(message='Upload succeed: {}'.format(table_name), type='info')
+    return None
+
+
+def load_lang(lang: str, fasttext_path):
+    log_and_print(message='Start: {}'.format(lang), type='info')
+
+    if not os.path.exists(fasttext_path):
+        log_and_print(message='No model for {lang}'.format(lang=lang), type='error')
+        return None
+
+    log_and_print(message='Loading model: {}'.format(lang), type='info')
+    wv = load_keyed_vectors(fasttext_path, limit=LIMIT)
+
+    log_and_print(message='Creating dataframe: {}'.format(lang), type='info')
+    vectors_df = create_vectors_df(wv)
+
+    log_and_print(message='Uploading to psql: {}', type='info')
+    table_name = lang + "_"
+    upload_vectors_sqlite(vectors_df, database=PSQL_DB, table_name=table_name)
+    return None
 
 
 def main():
@@ -66,26 +95,10 @@ def main():
                  'yo', 'zea', 'zh', 'ko']
 
     for lang in lang_list:
-        print('Start: {}'.format(lang))
-        logging.info('Start: {}'.format(lang))
-        wv_fpath = FASTTEXT_PATH.format(lang=lang)
-        if not os.path.exists(wv_fpath):
-            logging.error('No model for {lang}'.format(lang=lang))
-            print('No model for {lang}'.format(lang=lang))
-            continue
+        fasttext_fpath = FASTTEXT_PATH.format(lang=lang)
+        load_lang(lang, fasttext_fpath)
 
-        print('Loading model: {}'.format(lang))
-        logging.info('Loading model: {}'.format(lang))
-        wv = load_keyed_vectors(wv_fpath, limit=LIMIT)
-        print('Creating dataframe: {}'.format(lang))
-        logging.info('Creating dataframe: {}'.format(lang))
-        vectors_df = create_vectors_df(wv)  # Create df from vectors
-        del wv
-        print('Uploading to psql: {}'.format(lang))
-        logging.info('Uploading to psql: {}'.format(lang))
-        table_name = lang + "_"
-        upload_vectors_sqlite(vectors_df, database=PSQL_DB, table_name=table_name)  # Create sqlite database
-    print('Finish')
+    log_and_print(message='Finish', type='info')
 
 
 if __name__ == '__main__':
