@@ -78,21 +78,6 @@ def get_ru_wsi_vocabulary() -> Set:
     return voc
 
 
-def get_sorted_vocabulary(vectors_fpath: str) -> List:
-    with gzip.open(vectors_fpath, "rb") as in_f:
-        vocabulary = []
-        for i, line in enumerate(in_f):
-            if i == 0:
-                continue
-            try:
-                utf_line = str(line, "utf-8")
-            except UnicodeDecodeError as uee:
-                continue
-            utf_token = utf_line.split(" ")[0]
-            vocabulary.append(utf_token)
-    return vocabulary
-
-
 def save_to_gensim_format(wv, output_fpath: str):
     tic = time()
     wv.save(output_fpath)
@@ -470,13 +455,12 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 def main():
     parser = argparse.ArgumentParser(description='Graph-Vector Word Sense Induction approach.')
     parser.add_argument("language", help="A code that represents input language, e.g. 'en', 'de' or 'ru'. ")
-    parser.add_argument("-eval", help="Use only evaluation vocabulary, not all words in the model.",
-                        action="store_true")
+    parser.add_argument("-eval", help="Use only evaluation vocabulary, not all words.", action="store_true")
     parser.add_argument("-viz", help="Visualize each ego networks.", action="store_true")
-    parser.add_argument("-faiss_gpu", help="Use GPU for faiss", action="store_true")
+    parser.add_argument("-gpu", help="Use GPU for faiss", action="store_true")
     args = parser.parse_args()
 
-    run(language=args.language, eval_vocabulary=args.eval, visualize=args.viz, faiss_gpu=args.faiss_gpu)
+    run(language=args.language, eval_vocabulary=args.eval, visualize=args.viz, faiss_gpu=args.gpu)
 
 
 if __name__ == '__main__':
