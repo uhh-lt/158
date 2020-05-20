@@ -72,10 +72,10 @@ def load_globally(word_vectors_fpath: str, faiss_gpu: bool, gpu_device: int):
         res = faiss.StandardGpuResources()  # use a single GPU
         index_flat = faiss.IndexFlatIP(wv.vector_size)  # build a flat (CPU) index
         index_faiss = faiss.index_cpu_to_gpu(res, gpu_device, index_flat)  # make it into a gpu index
-        index_faiss.add(wv.syn0norm)  # add vectors to the index
+        index_faiss.add(wv.vectors_norm)  # add vectors to the index
     else:
         index_faiss = faiss.IndexFlatIP(wv.vector_size)
-        index_faiss.add(wv.syn0norm)
+        index_faiss.add(wv.vectors_norm)
     return wv
 
 
@@ -242,12 +242,12 @@ def draw_ego(G, show=False, save_fpath=""):
     colors = []
     sizes = []
     for node in G.nodes():
-        label = G.node[node]['label']
+        label = G.nodes[node]['label']
         if label not in label2id:
             label2id[label] = len(label2id) + 1
         label_id = label2id[label]
         colors.append(1. / label_id)
-        sizes.append(1500. * G.node[node]['size'])
+        sizes.append(1500. * G.nodes[node]['size'])
 
     plt.clf()
     fig = plt.gcf()
