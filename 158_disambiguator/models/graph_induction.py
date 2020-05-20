@@ -21,7 +21,6 @@ from chinese_whispers import chinese_whispers, aggregate_clusters
 
 from load_fasttext import download_word_embeddings
 
-VERBOSE = True
 REGEX_FILTER = re.compile('[\d.]')
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -115,16 +114,11 @@ def get_nns_faiss_batch(targets: List, batch_size: int, neighbors_number: int = 
     """
 
     word_neighbors_dict = dict()
-    if VERBOSE:
-        print("Start Faiss with batches")
 
     logger_info.info("Start Faiss with batches")
 
     for start in range(0, len(targets), batch_size):
         end = start + batch_size
-
-        if VERBOSE:
-            print("batch {} to {} of {}".format(start, end, len(targets)))
 
         logger_info.info("batch {} to {} of {}".format(start, end, len(targets)))
 
@@ -242,9 +236,7 @@ def wsi(ego, neighbors_number: int) -> Dict:
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
-    if VERBOSE:
-        print("{}\t{:f} sec.".format(ego, time() - tic))
-
+    print("{}\t{:f} sec.".format(ego, time() - tic))
     return {"network": ego_network, "nodes": nodes}
 
 
@@ -311,7 +303,7 @@ def create_logger(language: str, path: str, name: str = 'info', level=logging.IN
 
 
 def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
-        batch_size: int, limit: int, show_plot: bool = False):
+        batch_size: int, limit: int, show_plot: bool = False, save_neighbors: bool = False):
     global logger_info, logger_error
 
     inventory_path = os.path.join("inventories", language)
@@ -342,15 +334,14 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
     global voc_neighbors
     voc_neighbors_fpath = os.path.join(inventory_path, "voc_neighbors.pkl")
     if os.path.exists(voc_neighbors_fpath):
-        print("Neighbors pkl file found, loading...")
         logger_info.info("Neighbors pkl file found, loading...")
         voc_neighbors = load_obj(voc_neighbors_fpath)
     else:
-        print("Neighbors pkl file was not found")
         logger_info.info("Neighbors pkl file was not found")
         voc_neighbors = get_nns_faiss_batch(voc, batch_size=batch_size)
-        print("Saving neighbors file for the future re-usage...")
-        save_obj(voc_neighbors, voc_neighbors_fpath)
+        if save_neighbors:
+            logger_info.info("Saving neighbors file for the future re-usage...")
+            save_obj(voc_neighbors, voc_neighbors_fpath)
 
     # Init folder for inventory plots
     if visualize:
@@ -364,9 +355,6 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
             plt_topn_path = os.path.join(plt_path, str(topn))
             os.makedirs(plt_topn_path, exist_ok=True)
 
-        if VERBOSE:
-            print('{} neighbors'.format(topn))
-
         logger_info.info("{} neighbors".format(topn))
 
         inventory_file = "cc.{}.300.vec.gz.top{}.inventory.tsv".format(language, topn)
@@ -379,26 +367,20 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
         for index, word in enumerate(words):
 
             if word_counter == limit:
-                print("OUT OF LIMIT {}".format(limit))
                 logger_info.info("OUT OF LIMIT".format(limit))
                 break
 
             # Filter tokens with punctuation or digits
             if word in string.punctuation or has_digit_or_dot(word):
-                print("Skipping token '{}', because it is not a word\n".format(word))
                 continue
 
             word_counter += 1
-
-            if VERBOSE:
-                print("{} neighbors, word {} of {}, LIMIT = {}\n".format(topn, word_counter, len(words), limit))
 
             logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, word_counter, len(words), limit))
 
             if visualize:
                 plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
                 if os.path.exists(plt_topn_path_word):
-                    print("Plot for word {} already exists".format(word))
                     logger_info.info("Plot for word {} already exists".format(word))
                     continue
 
@@ -427,11 +409,12 @@ def main():
     parser.add_argument("-gpu_device", help="Which GPU to use", type=int, default=0)
     parser.add_argument("-batch_size", help="How many objects put in faiss per time", type=int, default=2000)
     parser.add_argument("-limit", help="Inventory size", type=int, default=100000)
+    parser.add_argument("-save_neighbors", help="Save neighbors dict to pkl", action="store_true")
 
     args = parser.parse_args()
 
     run(language=args.language, visualize=args.viz, faiss_gpu=args.gpu, gpu_device=args.gpu_device,
-        batch_size=args.batch_size, limit=args.limit)
+        batch_size=args.batch_size, limit=args.limit, save_neighbors=args.save_neighbors)
 
 
 if __name__ == '__main__':
