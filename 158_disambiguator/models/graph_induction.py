@@ -374,10 +374,16 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
 
             logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, word_counter, len(words), limit))
 
+            if visualize:
+                plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
+                if os.path.exists(plt_topn_path_word):
+                    print("Plot for word {} already exists".format(word))
+                    logger_info.info("Plot for word {} already exists".format(word))
+                    continue
+
             try:
                 words[word] = wsi(word, neighbors_number=topn)
                 if visualize:
-                    plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
                     draw_ego(words[word]["network"], show_plot, plt_topn_path_word)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
                 with codecs.open(output_fpath, "a", "utf-8") as out:
