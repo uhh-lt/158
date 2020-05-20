@@ -4,6 +4,7 @@ import codecs
 import string
 import logging
 import argparse
+import pickle
 from time import time
 from collections import Counter
 from traceback import format_exc
@@ -26,9 +27,19 @@ REGEX_FILTER = re.compile('[\d.]')
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 
-def has_digit_or_dot(input: str):
-    result = REGEX_FILTER.search(input)
+def has_digit_or_dot(token: str):
+    result = REGEX_FILTER.search(token)
     return result is not None
+
+
+def save_obj(obj, fpath):
+    with open(fpath, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_obj(fpath):
+    with open(fpath, 'rb') as f:
+        return pickle.load(f)
 
 
 def get_embedding_path(language):
@@ -329,7 +340,17 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
-    voc_neighbors = get_nns_faiss_batch(voc, batch_size=batch_size)
+    voc_neighbors_fpath = os.path.join(inventory_path, "voc_neighbors.pkl")
+    if os.path.exists(voc_neighbors_fpath):
+        print("Neighbors pkl file found, loading...")
+        logger_info.info("Neighbors pkl file found, loading...")
+        voc_neighbors = load_obj(voc_neighbors_fpath)
+    else:
+        print("Neighbors pkl file was not found")
+        logger_info.info("Neighbors pkl file was not found")
+        voc_neighbors = get_nns_faiss_batch(voc, batch_size=batch_size)
+        print("Saving neighbors file for the future re-usage...")
+        save_obj(voc_neighbors, voc_neighbors_fpath)
 
     # Init folder for inventory plots
     if visualize:
