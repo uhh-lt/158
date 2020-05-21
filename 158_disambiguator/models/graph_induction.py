@@ -21,14 +21,13 @@ from chinese_whispers import chinese_whispers, aggregate_clusters
 
 from load_fasttext import download_word_embeddings
 
-REGEX_FILTER = re.compile('[\d.]')
-
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 
-def has_digit_or_dot(token: str):
-    result = REGEX_FILTER.search(token)
-    return result is not None
+def filter_voc(voc: List[str]):
+    """Removes tokens with dot or digits."""
+    re_filter = re.compile('^((?![\d.!?{},]).)*$')
+    return [item for item in voc if re_filter.search(item) is not None]
 
 
 def save_obj(obj, fpath):
@@ -322,7 +321,10 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
     else:
         wv = load_globally(wv_pkl_fpath, faiss_gpu, gpu_device)
 
-    voc = list(wv.vocab.keys())
+    logger_info.info("Filtering vocabulary...")
+    voc = filter_voc(list(wv.vocab.keys()))
+    if limit < len(voc):
+        voc = voc[:limit]
 
     words = {w: None for w in voc}
 
@@ -363,20 +365,9 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
         with codecs.open(output_fpath, "w", "utf-8") as out:
             out.write("word\tcid\tkeyword\tcluster\n")
 
-        word_counter = 0
         for index, word in enumerate(words):
 
-            if word_counter == limit:
-                logger_info.info("OUT OF LIMIT".format(limit))
-                break
-
-            # Filter tokens with punctuation or digits
-            if word in string.punctuation or has_digit_or_dot(word):
-                continue
-
-            word_counter += 1
-
-            logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, word_counter, len(words), limit))
+            logger_info.info("{} neighbors, word {} of {}".format(topn, index+1, len(words)))
 
             if visualize:
                 plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
