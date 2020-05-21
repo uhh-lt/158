@@ -26,7 +26,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 def filter_voc(voc: List[str]):
     """Removes tokens with dot or digits."""
-    re_filter = re.compile('^((?![\d.!?{},:()[\]"\|/;_+%#<>№»«…*—]).)*$')
+    re_filter = re.compile('^((?![\d.!?{},:()[\]"\|/;_+%#<>№»«…*—$]).)*$')
     return [item for item in voc if re_filter.search(item) is not None]
 
 
@@ -84,6 +84,7 @@ def load_globally(word_vectors_fpath: str, faiss_gpu: bool, gpu_device: int):
         index_faiss.add(wv.vectors_norm)  # add vectors to the index
     else:
         index_faiss = faiss.IndexFlatIP(wv.vector_size)
+        x = wv.vectors_norm
         index_faiss.add(wv.vectors_norm)
     return wv
 
@@ -323,8 +324,6 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
 
     logger_info.info("Filtering vocabulary...")
     voc = list(wv.vocab.keys())
-
-
 
     print("Language:", language)
     print("Visualize:", visualize)
