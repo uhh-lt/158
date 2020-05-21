@@ -26,7 +26,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 def filter_voc(voc: List[str]):
     """Removes tokens with dot or digits."""
-    re_filter = re.compile('^((?![\d.!?{},]).)*$')
+    re_filter = re.compile('^((?![\d.!?{},:()[\]"\|/;_+%#<>№»«…*—]).)*$')
     return [item for item in voc if re_filter.search(item) is not None]
 
 
@@ -322,11 +322,9 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
         wv = load_globally(wv_pkl_fpath, faiss_gpu, gpu_device)
 
     logger_info.info("Filtering vocabulary...")
-    voc = filter_voc(list(wv.vocab.keys()))
-    if limit < len(voc):
-        voc = voc[:limit]
+    voc = list(wv.vocab.keys())
 
-    words = {w: None for w in voc}
+
 
     print("Language:", language)
     print("Visualize:", visualize)
@@ -350,6 +348,11 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
         plt_path = os.path.join(inventory_path, "plots")
         os.makedirs(plt_path, exist_ok=True)
 
+    voc_filtered = filter_voc(voc)
+    if limit < len(voc):
+        voc_filtered = voc_filtered[:limit]
+    words = {w: None for w in voc_filtered}
+
     # perform word sense induction
     for topn in (50, 100, 200):
 
@@ -367,7 +370,7 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
 
         for index, word in enumerate(words):
 
-            logger_info.info("{} neighbors, word {} of {}".format(topn, index+1, len(words)))
+            logger_info.info("{} neighbors, word {} of {}".format(topn, index + 1, len(words)))
 
             if visualize:
                 plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
