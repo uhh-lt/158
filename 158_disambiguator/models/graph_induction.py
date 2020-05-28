@@ -1,13 +1,14 @@
 import os
+import re
 import codecs
 import string
 import logging
 import argparse
+import pickle
 from time import time
-from glob import glob
 from collections import Counter
 from traceback import format_exc
-from os.path import join, exists
+from os.path import exists
 from typing import List, Dict, Set
 
 import faiss
@@ -15,26 +16,28 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from networkx import Graph
-from pandas import read_csv
 from gensim.models import KeyedVectors
 from chinese_whispers import chinese_whispers, aggregate_clusters
 
 from load_fasttext import download_word_embeddings
 
-wsi_data_dir = "/home/panchenko/russe-wsi-full/data/"
-
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-# Max number of neighbors
-verbose = True
-LIMIT = 100000
-BATCH_SIZE = 2000
-GPU_DEVICE = 0
 
-try:
-    wv
-except NameError:
-    wv = None
+def filter_voc(voc: List[str]):
+    """Removes tokens with dot or digits."""
+    re_filter = re.compile('^((?![\d.!?{},:()[\]"\|/;_+%#<>№»«…*—$]).)*$')
+    return [item for item in voc if re_filter.search(item) is not None]
+
+
+def save_obj(obj, fpath):
+    with open(fpath, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+def load_obj(fpath):
+    with open(fpath, 'rb') as f:
+        return pickle.load(f)
 
 
 def get_embedding_path(language):
@@ -54,60 +57,35 @@ def get_embedding_path(language):
     return wv_fpath, wv_pkl_fpath
 
 
-def get_ru_wsi_vocabulary() -> Set:
-    dataset_names = ["active-dict", "wiki-wiki", "bts-rnc"]
-
-    voc = set(["ключ", "замок", "коса"])
-
-    for dataset_name in dataset_names:
-        train_fpath = join(join(wsi_data_dir, dataset_name), "train.csv")
-        test_fpath = join(join(wsi_data_dir, dataset_name), "test.csv")
-
-        if exists(train_fpath):
-            train = read_csv(train_fpath, sep="\t", encoding="utf-8")
-
-        if exists(test_fpath):
-            test = read_csv(test_fpath, sep="\t", encoding="utf-8")
-
-        for i, row in test.iterrows():
-            voc.add(row.word)
-        for i, row in train.iterrows():
-            voc.add(row.word)
-
-    return voc
-
-
 def save_to_gensim_format(wv, output_fpath: str):
     tic = time()
     wv.save(output_fpath)
     print("Saved in {} sec.".format(time() - tic))
 
 
-def load_globally(word_vectors_fpath: str, faiss_gpu: bool):
+def load_globally(word_vectors_fpath: str, faiss_gpu: bool, gpu_device: int):
     global wv
     global index_faiss
 
-    if not wv:
-        print("Loading word vectors from:", word_vectors_fpath)
-        tic = time()
-        if word_vectors_fpath.endswith(".vec.gz"):
-            wv = KeyedVectors.load_word2vec_format(word_vectors_fpath, binary=False, unicode_errors="ignore")
-        else:
-            wv = KeyedVectors.load(word_vectors_fpath)
-        print("Loaded in {} sec.".format(time() - tic))
+    print("Loading word vectors from:", word_vectors_fpath)
+    tic = time()
+    if word_vectors_fpath.endswith(".vec.gz"):
+        wv = KeyedVectors.load_word2vec_format(word_vectors_fpath, binary=False, unicode_errors="ignore")
     else:
-        print("Using loaded word vectors.")
+        wv = KeyedVectors.load(word_vectors_fpath)
+    print("Loaded in {} sec.".format(time() - tic))
 
     wv.init_sims(replace=True)
 
     if faiss_gpu:
         res = faiss.StandardGpuResources()  # use a single GPU
         index_flat = faiss.IndexFlatIP(wv.vector_size)  # build a flat (CPU) index
-        index_faiss = faiss.index_cpu_to_gpu(res, GPU_DEVICE, index_flat)  # make it into a gpu index
-        index_faiss.add(wv.syn0norm)  # add vectors to the index
+        index_faiss = faiss.index_cpu_to_gpu(res, gpu_device, index_flat)  # make it into a gpu index
+        index_faiss.add(wv.vectors_norm)  # add vectors to the index
     else:
         index_faiss = faiss.IndexFlatIP(wv.vector_size)
-        index_faiss.add(wv.syn0norm)
+        x = wv.vectors_norm
+        index_faiss.add(wv.vectors_norm)
     return wv
 
 
@@ -136,16 +114,11 @@ def get_nns_faiss_batch(targets: List, batch_size: int, neighbors_number: int = 
     """
 
     word_neighbors_dict = dict()
-    if verbose:
-        print("Start Faiss with batches")
 
     logger_info.info("Start Faiss with batches")
 
     for start in range(0, len(targets), batch_size):
         end = start + batch_size
-
-        if verbose:
-            print("batch {} to {} of {}".format(start, end, len(targets)))
 
         logger_info.info("batch {} to {} of {}".format(start, end, len(targets)))
 
@@ -260,15 +233,10 @@ def wsi(ego, neighbors_number: int) -> Dict:
         for w, rr_node in related_related_nodes_ego:
             if get_pair(r_node, rr_node) not in pairs:
                 related_edges.append((r_node, rr_node, {"weight": w}))
-            else:
-                # print("Skipping:", r_node, rr_node)
-                pass
         ego_network.add_edges_from(related_edges)
 
     chinese_whispers(ego_network, weighting="top", iterations=20)
-    if verbose:
-        print("{}\t{:f} sec.".format(ego, time() - tic))
-
+    print("{}\t{:f} sec.".format(ego, time() - tic))
     return {"network": ego_network, "nodes": nodes}
 
 
@@ -277,12 +245,12 @@ def draw_ego(G, show=False, save_fpath=""):
     colors = []
     sizes = []
     for node in G.nodes():
-        label = G.node[node]['label']
+        label = G.nodes[node]['label']
         if label not in label2id:
             label2id[label] = len(label2id) + 1
         label_id = label2id[label]
         colors.append(1. / label_id)
-        sizes.append(1500. * G.node[node]['size'])
+        sizes.append(1500. * G.nodes[node]['size'])
 
     plt.clf()
     fig = plt.gcf()
@@ -304,22 +272,6 @@ def draw_ego(G, show=False, save_fpath=""):
         plt.savefig(save_fpath)
 
     fig.clf()
-
-
-def get_target_words(language: str) -> List:
-    """ Takes as input a two symbol language code e.g. 'de' and returns all 
-    words from the evaluation datasets for this language """
-
-    words = set()
-
-    for pairs_fpath in glob("eval/data/{}*dataset".format(language)):
-        df = read_csv(pairs_fpath, sep=";", encoding="utf-8")
-        for i, row in df.iterrows():
-            words.add(row.word1)
-            words.add(row.word2)
-
-    words = sorted(words)
-    return words
 
 
 def get_cluster_lines(G, nodes):
@@ -350,8 +302,8 @@ def create_logger(language: str, path: str, name: str = 'info', level=logging.IN
     return logger
 
 
-def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
-        show_plot: bool = False, faiss_gpu: bool = True):
+def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
+        batch_size: int, limit: int, show_plot: bool = False, save_neighbors: bool = False):
     global logger_info, logger_error
 
     inventory_path = os.path.join("inventories", language)
@@ -365,17 +317,13 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
     # ensure the word vectors are saved in the fast to load gensim format
     if not exists(wv_pkl_fpath):
-        wv = load_globally(wv_fpath, faiss_gpu)
+        wv = load_globally(wv_fpath, faiss_gpu, gpu_device)
         save_to_gensim_format(wv, wv_pkl_fpath)
     else:
-        wv = load_globally(wv_pkl_fpath, faiss_gpu)
+        wv = load_globally(wv_pkl_fpath, faiss_gpu, gpu_device)
 
-    if eval_vocabulary:
-        voc = get_target_words(language)
-    else:
-        voc = list(wv.vocab.keys())
-
-    words = {w: None for w in voc}
+    logger_info.info("Filtering vocabulary...")
+    voc = list(wv.vocab.keys())
 
     print("Language:", language)
     print("Visualize:", visualize)
@@ -383,12 +331,26 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
     # Load neighbors for vocabulary (globally)
     global voc_neighbors
-    voc_neighbors = get_nns_faiss_batch(voc, batch_size=BATCH_SIZE)
+    voc_neighbors_fpath = os.path.join(inventory_path, "voc_neighbors.pkl")
+    if os.path.exists(voc_neighbors_fpath):
+        logger_info.info("Neighbors pkl file found, loading...")
+        voc_neighbors = load_obj(voc_neighbors_fpath)
+    else:
+        logger_info.info("Neighbors pkl file was not found")
+        voc_neighbors = get_nns_faiss_batch(voc, batch_size=batch_size)
+        if save_neighbors:
+            logger_info.info("Saving neighbors file for the future re-usage...")
+            save_obj(voc_neighbors, voc_neighbors_fpath)
 
     # Init folder for inventory plots
     if visualize:
         plt_path = os.path.join(inventory_path, "plots")
         os.makedirs(plt_path, exist_ok=True)
+
+    voc_filtered = filter_voc(voc)
+    if limit < len(voc):
+        voc_filtered = voc_filtered[:limit]
+    words = {w: None for w in voc_filtered}
 
     # perform word sense induction
     for topn in (50, 100, 200):
@@ -396,9 +358,6 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
         if visualize:
             plt_topn_path = os.path.join(plt_path, str(topn))
             os.makedirs(plt_topn_path, exist_ok=True)
-
-        if verbose:
-            print('{} neighbors'.format(topn))
 
         logger_info.info("{} neighbors".format(topn))
 
@@ -410,24 +369,17 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 
         for index, word in enumerate(words):
 
-            if index + 1 == LIMIT:
-                print("OUT OF LIMIT {}".format(LIMIT))
-                logger_info.error("OUT OF LIMIT".format(LIMIT))
-                break
+            logger_info.info("{} neighbors, word {} of {}".format(topn, index + 1, len(words)))
 
-            if word in string.punctuation:
-                print("Skipping word '{}', because it is a punctuation\n".format(word))
-                continue
-
-            if verbose:
-                print("{} neighbors, word {} of {}, LIMIT = {}\n".format(topn, index + 1, len(words), LIMIT))
-
-            logger_info.info("{} neighbors, word {} of {}, LIMIT = {}".format(topn, index + 1, len(words), LIMIT))
+            if visualize:
+                plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
+                if os.path.exists(plt_topn_path_word):
+                    logger_info.info("Plot for word {} already exists".format(word))
+                    continue
 
             try:
                 words[word] = wsi(word, neighbors_number=topn)
                 if visualize:
-                    plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
                     draw_ego(words[word]["network"], show_plot, plt_topn_path_word)
                 lines = get_cluster_lines(words[word]["network"], words[word]["nodes"])
                 with codecs.open(output_fpath, "a", "utf-8") as out:
@@ -445,12 +397,17 @@ def run(language="ru", eval_vocabulary: bool = False, visualize: bool = True,
 def main():
     parser = argparse.ArgumentParser(description='Graph-Vector Word Sense Induction approach.')
     parser.add_argument("language", help="A code that represents input language, e.g. 'en', 'de' or 'ru'. ")
-    parser.add_argument("-eval", help="Use only evaluation vocabulary, not all words.", action="store_true")
     parser.add_argument("-viz", help="Visualize each ego networks.", action="store_true")
     parser.add_argument("-gpu", help="Use GPU for faiss", action="store_true")
+    parser.add_argument("-gpu_device", help="Which GPU to use", type=int, default=0)
+    parser.add_argument("-batch_size", help="How many objects put in faiss per time", type=int, default=2000)
+    parser.add_argument("-limit", help="Inventory size", type=int, default=100000)
+    parser.add_argument("-save_neighbors", help="Save neighbors dict to pkl", action="store_true")
+
     args = parser.parse_args()
 
-    run(language=args.language, eval_vocabulary=args.eval, visualize=args.viz, faiss_gpu=args.gpu)
+    run(language=args.language, visualize=args.viz, faiss_gpu=args.gpu, gpu_device=args.gpu_device,
+        batch_size=args.batch_size, limit=args.limit, save_neighbors=args.save_neighbors)
 
 
 if __name__ == '__main__':
