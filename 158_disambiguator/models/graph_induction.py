@@ -14,12 +14,16 @@ from typing import List, Dict, Set
 import faiss
 import numpy as np
 import networkx as nx
-import matplotlib.pyplot as plt
 from networkx import Graph
 from gensim.models import KeyedVectors
 from chinese_whispers import chinese_whispers, aggregate_clusters
 
+import matplotlib
+import matplotlib.pyplot as plt
+
 from load_fasttext import download_word_embeddings
+
+matplotlib.use("pdf")  # speed up graph plot saving
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -241,6 +245,8 @@ def wsi(ego, neighbors_number: int) -> Dict:
 
 
 def draw_ego(G, show=False, save_fpath=""):
+    tic = time()
+
     label2id = {}
     colors = []
     sizes = []
@@ -256,7 +262,8 @@ def draw_ego(G, show=False, save_fpath=""):
     fig = plt.gcf()
     fig.set_size_inches(20, 20)
 
-    nx.draw_networkx(G, cmap=plt.get_cmap('gist_rainbow'),
+    nx.draw_networkx(G,
+                     cmap=plt.get_cmap('gist_rainbow'),
                      pos=nx.spring_layout(G, k=0.75),
                      node_color=colors,
                      font_color='black',
@@ -272,6 +279,9 @@ def draw_ego(G, show=False, save_fpath=""):
         plt.savefig(save_fpath)
 
     fig.clf()
+
+    print("Created graph plot for: {} sec.".format(time() - tic))
+    return None
 
 
 def get_cluster_lines(G, nodes):
