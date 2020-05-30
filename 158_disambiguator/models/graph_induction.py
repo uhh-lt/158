@@ -354,7 +354,7 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
 
     # Init folder for inventory plots
     if visualize:
-        plt_path = os.path.join(inventory_path, "plots")
+        plt_path = os.path.join("plots", language)
         os.makedirs(plt_path, exist_ok=True)
 
     voc_filtered = filter_voc(voc)
