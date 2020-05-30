@@ -25,9 +25,6 @@ services:
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
     - './158_disambiguator/models/plots:/usr/src/app/plots:ro'
-    links:
-    - tokenizer
-    - disambiguator
   database:
     image: "postgres" # use latest official postgres version
     env_file:
