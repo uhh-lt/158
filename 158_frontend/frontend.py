@@ -143,16 +143,15 @@ def senses():
 
     data = {"language": language,
             "word": word}
-
     try:
         answer = requests.post(disambiguator_url, data=json.dumps(data), headers=json_headers)
         senses_list = answer.json()
     except Exception as e:
         print(e)
-        senses_list = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
+        senses_list = [{"token": word, "keyword": "SERVER ERROR"}]
 
     if len(senses_list) == 0:
-        senses_list = [[word, "UNKNOWN WORD", ["UNKNOWN WORD"]]]
+        senses_list = [{"token": word, "keyword": "UNKNOWN WORD"}]
 
     return render_template('senses.html', word=word, senses=senses_list, language=language)
 
