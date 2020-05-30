@@ -24,6 +24,7 @@ services:
     - '10150:5000'
     volumes:
     - './158-docker.ini:/usr/src/app/158.ini:ro'
+    - './158_disambiguator/models/plots:/usr/src/app/plots:ro'
     links:
     - tokenizer
     - disambiguator
