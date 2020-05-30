@@ -3,6 +3,7 @@
    python -m nltk.downloader punkt """
 
 import os
+import csv
 from os.path import exists
 from typing import List, Tuple
 from collections import namedtuple
@@ -69,7 +70,7 @@ class WSD(object):
         self._skip_unknown_words = skip_unknown_words
 
     def _load_inventory(self):
-        inventory_df = read_csv(self.inventory_fpath, sep="\t", encoding="utf-8")
+        inventory_df = read_csv(self.inventory_fpath, sep="\t", encoding="utf-8", quoting=csv.QUOTE_NONE)
         inventory_df['cluster_words'] = inventory_df.cluster.str.split(",")
         return inventory_df
 

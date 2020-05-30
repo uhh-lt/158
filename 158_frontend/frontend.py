@@ -139,7 +139,7 @@ def senses():
     disambiguator_url = os.path.join(random.choice(disambiguators), "senses")
 
     language = request.form["selected_language"]
-    word = request.form["word"]
+    word = request.form["word"].strip().lower()
 
     data = {"language": language,
             "word": word}
@@ -160,7 +160,7 @@ def senses():
 @app.route('/plots/<lang>/<word>')
 def send_pdf(lang, word):
     fpath = "./plots/{lang}/".format(lang=lang)
-    filename = '{word}.pdf'.format(word=word)
+    filename = '{word}.pdf'.format(word=word.lower())
     return send_from_directory(fpath, filename)
 
 
