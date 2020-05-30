@@ -312,7 +312,7 @@ def create_logger(language: str, path: str, name: str = 'info', level=logging.IN
     return logger
 
 
-def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
+def run(language, visualize: int, faiss_gpu: bool, gpu_device: int,
         batch_size: int, limit: int, show_plot: bool = False, save_neighbors: bool = False):
     global logger_info, logger_error
 
@@ -356,6 +356,9 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
     if visualize:
         plt_path = os.path.join("plots", language)
         os.makedirs(plt_path, exist_ok=True)
+        topn_list = [visualize]
+    else:
+        topn_list = (50, 100, 200)
 
     voc_filtered = filter_voc(voc)
     if limit < len(voc):
@@ -363,7 +366,7 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
     words = {w: None for w in voc_filtered}
 
     # perform word sense induction
-    for topn in (50, 100, 200):
+    for topn in topn_list:
 
         if visualize:
             plt_topn_path = os.path.join(plt_path, str(topn))
@@ -407,7 +410,7 @@ def run(language, visualize: bool, faiss_gpu: bool, gpu_device: int,
 def main():
     parser = argparse.ArgumentParser(description='Graph-Vector Word Sense Induction approach.')
     parser.add_argument("language", help="A code that represents input language, e.g. 'en', 'de' or 'ru'. ")
-    parser.add_argument("-viz", help="Visualize each ego networks.", action="store_true")
+    parser.add_argument("-viz", help="Visualize each ego networks (need int for neighbors).", type=int, default=0)
     parser.add_argument("-gpu", help="Use GPU for faiss", action="store_true")
     parser.add_argument("-gpu_device", help="Which GPU to use", type=int, default=0)
     parser.add_argument("-batch_size", help="How many objects put in faiss per time", type=int, default=2000)
