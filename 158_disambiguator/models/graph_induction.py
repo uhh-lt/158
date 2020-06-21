@@ -358,9 +358,6 @@ class GraphInductor(object):
 
             if self.visualize:
                 plt_topn_path_word = os.path.join(plt_topn_path, "{}.pdf".format(word))
-                if os.path.exists(plt_topn_path_word):
-                    self.logger_info.info("Plot for word {} already exists".format(word))
-                    continue
 
             try:
                 words[word] = self._wsi_(word, neighbors_number=top_n)
