@@ -84,7 +84,7 @@ class GraphInductor(object):
 
     def _load_vectors_(self, word_vectors_fpath: str):
         """Loads gensim vectors from file."""
-        self.logger_info.info("Loading word vectors from:", word_vectors_fpath)
+        self.logger_info.info("Loading word vectors from: {}".format(word_vectors_fpath))
         tic = time()
         if word_vectors_fpath.endswith(".vec.gz"):
             wv = KeyedVectors.load_word2vec_format(word_vectors_fpath, binary=False, unicode_errors="ignore")
@@ -118,7 +118,8 @@ class GraphInductor(object):
         if len(target_neighbors) >= neighbors_number:
             return target_neighbors[:neighbors_number]
         else:
-            self.logger_error.error("neighbors_number {} is more than precomputed {}".format(neighbors_number, len(target_neighbors)))
+            self.logger_error.error("neighbors_number {} is more than precomputed {}".format(neighbors_number,
+                                                                                             len(target_neighbors)))
             exit(1)
 
     def _calculate_nns_(self, neighbors_number: int) -> Dict:
@@ -324,8 +325,8 @@ class GraphInductor(object):
         self.index_faiss = self._prepare_faiss_(self.wv, self.faiss_gpu, self.gpu_device)
         self.voc = list(self.wv.vocab.keys())
 
-        self.logger_info.info("Language:", self.language)
-        self.logger_info.info("Visualize:", self.visualize)
+        self.logger_info.info("Language: {}".format(self.language))
+        self.logger_info.info("Visualize: {}".format(self.visualize))
         self.logger_info.info("Vocabulary: {} words".format(len(self.voc)))
 
         # Load neighbors for vocabulary
