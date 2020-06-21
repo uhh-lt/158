@@ -28,15 +28,16 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 
 class GraphInductor(object):
-    def __init__(self, language: str, faiss_gpu: bool, gpu_device: int, batch_size: int,
-                 chinese_whispers_n: int, limit: int, visualize: int, show_plot: bool = False):
+    def __init__(self, language: str, faiss_gpu: bool, gpu_device: int, batch_size: int, chinese_whispers_n: int,
+                 inv_limit: int, emb_limit: int, visualize: int, show_plot: bool = False):
 
         self.language = language
         self.faiss_gpu = faiss_gpu
         self.gpu_device = gpu_device
         self.batch_size = batch_size
         self.chinese_whispers_n = chinese_whispers_n
-        self.limit = limit
+        self.inv_limit = inv_limit
+        self.emb_limit = emb_limit
         self.visualize = visualize
         self.show_plot = show_plot
 
@@ -71,25 +72,16 @@ class GraphInductor(object):
             self.logger_info.info('Embedding for {} does not exist, loading'.format(language))
             download_word_embeddings(language)
 
-        wv_pkl_fpath = wv_fpath + ".pkl"
-        return wv_fpath, wv_pkl_fpath
-
-    @staticmethod
-    def _save_to_gensim_format_(wv, output_fpath: str):
-        """Saves gensim vectors in the gensim format file."""
-        tic = time()
-        wv.save(output_fpath)
-        print("Saved in {} sec.".format(time() - tic))
-        return None
+        return wv_fpath
 
     def _load_vectors_(self, word_vectors_fpath: str):
         """Loads gensim vectors from file."""
         self.logger_info.info("Loading word vectors from: {}".format(word_vectors_fpath))
         tic = time()
-        if word_vectors_fpath.endswith(".vec.gz"):
-            wv = KeyedVectors.load_word2vec_format(word_vectors_fpath, binary=False, unicode_errors="ignore")
-        else:
-            wv = KeyedVectors.load(word_vectors_fpath)
+        wv = KeyedVectors.load_word2vec_format(word_vectors_fpath,
+                                               binary=False,
+                                               unicode_errors="ignore",
+                                               limit=self.emb_limit)
         self.logger_info.info("Loaded in {} sec.".format(time() - tic))
         wv.init_sims(replace=True)
         return wv
@@ -312,15 +304,9 @@ class GraphInductor(object):
 
     def prepare_vocabulary(self, neighbors_number: int, filter_voc: bool):
 
-        wv_fpath, wv_pkl_fpath = self._get_embedding_path_(self.language)
+        wv_fpath = self._get_embedding_path_(self.language)
         self.neighbors_number = neighbors_number
-
-        # ensure the word vectors are saved in the fast to load gensim format
-        if not exists(wv_pkl_fpath):
-            self.wv = self._load_vectors_(wv_fpath)
-            self._save_to_gensim_format_(self.wv, wv_pkl_fpath)
-        else:
-            self.wv = self._load_vectors_(wv_pkl_fpath)
+        self.wv = self._load_vectors_(wv_fpath)
 
         self.index_faiss = self._prepare_faiss_(self.wv, self.faiss_gpu, self.gpu_device)
         self.voc = list(self.wv.vocab.keys())
@@ -343,8 +329,8 @@ class GraphInductor(object):
             self.logger_info.info("Filtering vocabulary...")
             self.voc = self._filter_voc_(self.voc)
 
-        if self.limit < len(self.voc):
-            self.voc = self.voc[:self.limit]
+        if self.inv_limit < len(self.voc):
+            self.voc = self.voc[:self.inv_limit]
 
         self.logger_info.info("Vocabulary preparation is complete")
         return None
@@ -403,7 +389,8 @@ def main():
     parser.add_argument("-gpu_device", help="Which GPU to use", type=int, default=0)
     parser.add_argument("-top_n", help="Number of neighbors", type=int, default=200)
     parser.add_argument("-batch_size", help="How many objects put in faiss per time", type=int, default=2000)
-    parser.add_argument("-limit", help="Inventory size", type=int, default=100000)
+    parser.add_argument("-inv_limit", help="Inventory vocabulary size", type=int, default=100000)
+    parser.add_argument("-emb_limit", help="Initial embedding vocabulary size", type=int, default=1000000)
     parser.add_argument("-cw", help="Number of Chinese Whispers iterations", type=int, default=20)
 
     args = parser.parse_args()
@@ -412,7 +399,8 @@ def main():
                                    gpu_device=args.gpu_device,
                                    chinese_whispers_n=args.cw,
                                    batch_size=args.batch_size,
-                                   limit=args.limit,
+                                   inv_limit=args.inv_limit,
+                                   emb_limit=args.emb_limit,
                                    visualize=args.viz)
     graph_inductor.prepare_vocabulary(args.top_n, args.filter_voc)
     graph_inductor.run_and_save(args.top_n)
