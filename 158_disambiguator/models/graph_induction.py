@@ -6,8 +6,7 @@ import argparse
 from time import time
 from collections import Counter
 from traceback import format_exc
-from os.path import exists
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 import string
 
 import faiss
@@ -56,7 +55,7 @@ class GraphInductor(object):
 
     @staticmethod
     def _filter_voc_(voc):
-        """Removes tokens with dot or digits."""
+        """Removes tokens with punctuation or digits from vocabulary."""
         re_filter = re.compile('^((?![\d.!?{},:()[\]"|/;_+%#<>№»«…*—$]).)*$')
         return [item for item in voc if (re_filter.search(item) is not None) and (item not in string.punctuation)]
 
@@ -75,7 +74,7 @@ class GraphInductor(object):
         return wv_fpath
 
     def _load_vectors_(self, word_vectors_fpath: str):
-        """Loads gensim vectors from file."""
+        """Loads gensim vectors from a file."""
         self.logger_info.info("Loading word vectors from: {}".format(word_vectors_fpath))
         tic = time()
         wv = KeyedVectors.load_word2vec_format(word_vectors_fpath,
@@ -153,45 +152,59 @@ class GraphInductor(object):
         return word_neighbors_dict
 
     @staticmethod
-    def _in_nns_(nns, word: str) -> bool:
-        """Checks if word is in list of tuples nns."""
+    def _in_nns_(nns: Tuple, word: str) -> bool:
+        """Checks if the word is in list of the neighbors tuple."""
         for w, s in nns:
             if word.strip().lower() == w.strip().lower():
                 return True
         return False
 
     @staticmethod
-    def _get_pair_(first, second) -> tuple:
+    def _get_pair_(first: str, second: str) -> tuple:
+        """Creates a tuple of the sorted string pair."""
         pair_lst = sorted([first, second])
         sorted_pair = (pair_lst[0], pair_lst[1])
         return sorted_pair
 
-    def _get_disc_pairs_(self, ego, neighbors_number: int) -> Set:
-        pairs = set()
-        nns = self._get_nns_(ego, neighbors_number)
-        nns_words = [row[0] for row in nns]  # list of neighbors (only words)
-        wv_neighbors = np.array([self.wv[nns_word] for nns_word in nns_words])
-        wv_ego = np.array(self.wv[ego])
-        wv_negative_neighbors = (wv_neighbors - wv_ego) * (-1)  # untop vectors
-        D, I = self.index_faiss.search(wv_negative_neighbors, 1 + 1)  # find top neighbor for each difference
+    def _calculate_anti_pairs_(self, ego, neighbors_number: int) -> Set:
+        """
+        Calculates anti-pairs for ego's neighbors.
+        :param ego: word to build semantic graph
+        :param neighbors_number: number of neighbors
+        :return: anti_pairs -> set of lists of anti-pairs
+        """
+        anti_pairs = set()
 
-        # Write down top-untop pairs
-        pairs_list_2 = list()
-        for word_index, (_D, _I) in enumerate(zip(D, I)):
+        # create list of ego's neighbors (only words)
+        nns = self._get_nns_(ego, neighbors_number)
+        nns_words = [row[0] for row in nns]
+
+        # create vectors for ego, it's neighbors
+        wv_ego = np.array(self.wv[ego])
+        wv_neighbors = np.array([self.wv[nns_word] for nns_word in nns_words])
+
+        # find words close to ego, but far to neighbors
+        wv_negative_neighbors = (wv_neighbors - wv_ego) * (-1)
+        dists, word_indices = self.index_faiss.search(wv_negative_neighbors, 2)
+
+        # Write down anti_pairs
+        anti_pairs_list = list()
+        for word_index, (_D, _I) in enumerate(zip(dists, word_indices)):
             for n, (d, i) in enumerate(zip(_D.ravel(), _I.ravel())):
-                if self.wv.index2word[i] != ego:  # faiss find either ego-word or untop we need
-                    pairs_list_2.append((nns_words[word_index], self.wv.index2word[i]))
+                if self.wv.index2word[i] != ego:  # faiss finds either ego-word or untop we need
+                    anti_pairs_list.append((nns_words[word_index], self.wv.index2word[i]))
                     break
 
-        # Filter pairs
-        for pair in pairs_list_2:
+        # Filter anti_pairs by ego's neighbors
+        for pair in anti_pairs_list:
             if self._in_nns_(nns, pair[1]):
-                pairs.add(self._get_pair_(pair[0], pair[1]))
+                anti_pairs.add(self._get_pair_(pair[0], pair[1]))
 
-        return pairs
+        return anti_pairs
 
     @staticmethod
     def _get_nodes_(pairs: Set) -> Counter:
+        """Counts tokens' occurrences in pairs."""
         nodes = Counter()
         for src, dst in pairs:
             nodes.update([src])
@@ -212,7 +225,7 @@ class GraphInductor(object):
         tic = time()
         ego_network = Graph(name=ego)
 
-        pairs = self._get_disc_pairs_(ego, neighbors_number)
+        pairs = self._calculate_anti_pairs_(ego, neighbors_number)
         nodes = self._get_nodes_(pairs)
 
         ego_network.add_nodes_from([(node, {'size': size}) for node, size in nodes.items()])
@@ -277,6 +290,7 @@ class GraphInductor(object):
 
     @staticmethod
     def _get_cluster_lines_(graph, nodes):
+        """Writes clusters into a csv-file line."""
         lines = []
         labels_clusters = sorted(aggregate_clusters(graph).items(), key=lambda e: len(e[1]), reverse=True)
         for label, cluster in labels_clusters:
@@ -303,6 +317,7 @@ class GraphInductor(object):
         return logger
 
     def prepare_vocabulary(self, neighbors_number: int, filter_voc: bool):
+        """Loads embeddings and calculates neighbors for the vocabulary."""
 
         wv_fpath = self._get_embedding_path_(self.language)
         self.neighbors_number = neighbors_number
@@ -318,7 +333,6 @@ class GraphInductor(object):
         # Load neighbors for vocabulary
         self.voc_neighbors = self._calculate_nns_(neighbors_number=neighbors_number)
 
-        # TODO: change visualize from int to bool
         # Init folder for inventory plots
         if self.visualize:
             self.plt_path = os.path.join("plots", self.language)
