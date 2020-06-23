@@ -10,7 +10,6 @@
     <div id="sense">
       {% for sense in senses %}
           <span class="sense">
-            {{ sense['token'] | e }}
             <span class="sense-details">
               <b>Keyword</b>: {{ sense['keyword'] | e }}<br>
               <b>Cluster:</b> {{ ', '.join(sense['cluster']) | e }}<br>
@@ -20,6 +19,11 @@
       {%- endfor %}
     </div>
   </div>
+</div>
+
+<div class="right-picture">
+    <h5>Sense graph plot </h5>
+    <embed src="./plots/{{language}}/{{word}}" width="800" height="800" float="right">
 </div>
 
 {% endblock %}

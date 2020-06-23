@@ -6,7 +6,7 @@ import json
 import requests
 import os
 
-from flask import Flask, render_template, send_from_directory, redirect, url_for, request, jsonify
+from flask import Flask, render_template, send_from_directory, redirect, url_for, request, current_app as app
 
 import frontend_assets
 
@@ -68,8 +68,6 @@ def disambiguate_text(input_text: str, tokenizer_url: str, disambiguator_url: st
 
 @app.route('/wsd', methods=['POST'])
 def wsd():
-    output_message = None
-
     text_input = request.form['text']
     if 'known_language' in request.form:
         chosen_lang = request.form['selected_language_main']
@@ -138,28 +136,31 @@ def word_senses():
 
 @app.route('/senses', methods=['POST'])
 def senses():
-    output_message = None
     disambiguator_url = os.path.join(random.choice(disambiguators), "senses")
 
     language = request.form["selected_language"]
-    word = request.form["word"]
+    word = request.form["word"].strip()
 
     data = {"language": language,
             "word": word}
-
     try:
         answer = requests.post(disambiguator_url, data=json.dumps(data), headers=json_headers)
         senses_list = answer.json()
     except Exception as e:
         print(e)
-        output_message = "SERVER ERROR"
-        senses_list = [[word, "SERVER ERROR", ["SERVER ERROR"]]]
+        senses_list = [{"token": word, "keyword": "SERVER ERROR"}]
 
     if len(senses_list) == 0:
-        output_message = "UNKNOWN WORD"
-        senses_list = [[word, "UNKNOWN WORD", ["UNKNOWN WORD"]]]
+        senses_list = [{"token": word, "keyword": "UNKNOWN WORD"}]
 
     return render_template('senses.html', word=word, senses=senses_list, language=language)
+
+
+@app.route('/plots/<lang>/<word>')
+def send_pdf(lang, word):
+    fpath = "./plots/{lang}/".format(lang=lang)
+    filename = '{word}.pdf'.format(word=word)
+    return send_from_directory(fpath, filename)
 
 
 @app.route('/favicon.ico')
