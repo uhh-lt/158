@@ -40,7 +40,7 @@ The entry point is `158_disambiguator/disambiguator_server.py`. Running `docker-
 
 #### Disambiguation Dependencies
 
-Before running server, you need to put fastText models in /models/fasttext_models/<lang>/ and inventories in /models/inventories/<lang>/ (separate folders for each language) if you want to keep them in RAM, otherwise use PostgreSQL Service. You can find useful scripts in /models/ folder to load fastText vectors (load_fasttext.py), to create your own inventory (graph_induction.py) and to upload data to a postgresql database if needed (fasttext_to_psql.py, inventory_to_psql.py).
+Before running server, you need to put fastText models in /models/fasttext_models/{lang}/ and inventories in /models/inventories/{lang}/ (separate folders for each language) if you want to keep them in RAM, otherwise use PostgreSQL Service. You can find useful scripts in /models/ folder to load fastText vectors (load_fasttext.py), to create your own inventory (graph_induction.py) and to upload data to a postgresql database if needed (fasttext_to_psql.py, inventory_to_psql.py).
 
 ### PostgreSQL Service
 
