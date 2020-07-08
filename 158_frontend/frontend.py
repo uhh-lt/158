@@ -139,9 +139,9 @@ def word_senses():
 @app.route('/senses', methods=['POST'])
 def senses():
     disambiguator_url = os.path.join(random.choice(disambiguators), "senses")
-
     language = request.form["selected_language"]
     word = request.form["word"].strip()
+    error_msg = None
 
     data = {"language": language,
             "word": word}
@@ -150,17 +150,21 @@ def senses():
         senses_list = answer.json()
     except Exception as e:
         print(e)
-        senses_list = [{"token": word, "keyword": "SERVER ERROR"}]
-
-    if len(senses_list) == 0:
-        senses_list = [{"token": word, "keyword": "UNKNOWN WORD"}]
+        senses_list = None
+        error_msg = "SERVER ERROR"
+    else:
+        if len(senses_list) == 0:
+            senses_list = None
+            error_msg = "UNKNOWN WORD"
 
     if language in plot_langs:
         has_plot = True
     else:
         has_plot = False
 
-    return render_template('senses.html', word=word, senses=senses_list, language=language, has_plot=has_plot)
+    return render_template('senses.html',
+                           word=word, senses=senses_list, language=language,
+                           has_plot=has_plot, error_msg=error_msg)
 
 
 @app.route('/plots/<lang>/<word>')
