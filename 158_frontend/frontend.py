@@ -28,6 +28,8 @@ print(tokenizers)
 disambiguators = [url for url in config['services']['disambiguator'].split('\n') if url]
 print(disambiguators)
 
+plot_langs = config['frontend']['plot_langs'].split(",")
+
 json_headers = {'Content-type': 'application/json'}
 
 app = Flask(__name__)
@@ -153,7 +155,12 @@ def senses():
     if len(senses_list) == 0:
         senses_list = [{"token": word, "keyword": "UNKNOWN WORD"}]
 
-    return render_template('senses.html', word=word, senses=senses_list, language=language)
+    if language in plot_langs:
+        has_plot = True
+    else:
+        has_plot = False
+
+    return render_template('senses.html', word=word, senses=senses_list, language=language, has_plot=has_plot)
 
 
 @app.route('/plots/<lang>/<word>')

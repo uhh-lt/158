@@ -20,10 +20,12 @@
     </div>
   </div>
 </div>
-{#
-<div class="right-picture">
-    <h5>Sense graph plot </h5>
-    <embed src="./plots/{{language}}/{{word}}" width="800" height="800" float="right">
-</div>
-#}
+
+{% if has_plot %}
+    <div class="right-picture">
+        <h5>Sense graph plot </h5>
+        <embed src="./plots/{{language}}/{{word}}" width="800" height="800" float="right">
+    </div>
+{% endif %}
+
 {% endblock %}
