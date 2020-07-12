@@ -52,6 +52,7 @@ class GraphInductor(object):
         self.voc_neighbors = None
         self.plt_path = None
         self.neighbors_number = None
+        self.res_faiss = None
 
     @staticmethod
     def _filter_voc_(voc):
@@ -93,10 +94,11 @@ class GraphInductor(object):
             index_flat = faiss.IndexFlatIP(wv.vector_size)  # build a flat (CPU) index
             index_faiss = faiss.index_cpu_to_gpu(res, gpu_device, index_flat)  # make it into a gpu index
             index_faiss.add(wv.vectors_norm)  # add vectors to the index
+            return index_faiss, res
         else:
             index_faiss = faiss.IndexFlatIP(wv.vector_size)
             index_faiss.add(wv.vectors_norm)
-        return index_faiss
+            return index_faiss
 
     def _get_nns_(self, target: str, neighbors_number: int):
         """
@@ -323,7 +325,12 @@ class GraphInductor(object):
         self.neighbors_number = neighbors_number
         self.wv = self._load_vectors_(wv_fpath)
 
-        self.index_faiss = self._prepare_faiss_(self.wv, self.faiss_gpu, self.gpu_device)
+        if self.faiss_gpu:
+            self.index_faiss, self.res_faiss = self._prepare_faiss_(self.wv, self.faiss_gpu, self.gpu_device)
+            self.res_faiss.noTempMemory()  # free unused temporary gpu-memory
+        else:
+            self.index_faiss = self._prepare_faiss_(self.wv, self.faiss_gpu, self.gpu_device)
+
         self.voc = list(self.wv.vocab.keys())
 
         self.logger_info.info("Language: {}".format(self.language))
