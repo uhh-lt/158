@@ -148,6 +148,7 @@ def senses():
     try:
         answer = requests.post(disambiguator_url, data=json.dumps(data), headers=json_headers)
         senses_list = answer.json()
+        senses_list = sorted(senses_list, key=lambda k: len(k["cluster"]), reverse=True)  # sort by cluster size
     except Exception as e:
         print(e)
         senses_list = None
